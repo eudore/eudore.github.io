@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<!-- saved from url=(0026)http://www.wangeditor.com/ -->
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="keywords" contect="富文本,富文本编辑器,富文本框,在线编辑器,html,web,javascript">
+    <meta name="Description" contect="wangEditor - 轻量级web富文本编辑器">
+    <title>wangEditor - 轻量级web富文本编辑器</title>
+	<script type="text/javascript">
+		if(typeof fetch === "undefined"){
+			document.write('<script src="/js/lib/bluebird.min.js" defer><\/script>')
+			document.write('<script src="/js/lib/fetch.js" async><\/script>')
+		}
+	</script>
+    <script src="wangEditor4.min.js"></script>
+    <script src="/js/hash.js" defer></script>
+</head>
+<body style="">
+    <!-- jumbotron（超大屏幕） -->
+    <div class="jumbotron">
+      <div class="container">
+        <center>
+            <h1>Editor</h1>
+            <p>
+                ---
+            </p>
+        </center>
+      </div>
+    </div>
+
+    <!-- body container -->
+    <div class="container">
+        <center>
+            <div style="max-width:1100px;">
+                <!--demo-->
+                <div style="text-align:left;">
+                    <div id="editor"></div>
+                </div>
+			</div>
+        </center>
+    </div>
+    <!--footer-->
+    <footer>
+        <center>
+            <p>©2017 wangEditor.github.io</p>
+            <input id="commit" value="Jass/NL/NL" onkeypress="if(event.keyCode==13){show();return false;}"/>
+            <button onclick="show()">show</button>
+            <button onclick="commit()">commit</button>
+        </center>
+    </footer>
+    <script>
+		"use strict";
+		var editor
+		void function(){
+            editor = new window.Editor('#editor')
+		    editor.customConfig.uploadImgShowBase64 = true
+		    editor.create()
+		}();
+        function show(){
+            var path = document.getElementById('commit').value.replace(/\//g,String.fromCharCode(0))
+            window.fetch('/note/'+path.MD5(32)+"/content",{ method: 'GET',credentials: 'include'}).then(function(response) {
+                if (!response.ok) throw new Error(response.statusText)
+                return response.json()
+            }).then(function(data){
+                console.log(data)
+				editor.txt.html(data['content'])
+            })
+        }
+        function commit(){
+            var path = document.getElementById('commit').value.replace(/\//g,String.fromCharCode(0))
+            var data = editor.txt.html()
+            fetch('/note/'+path.MD5(32)+"/content",{ method: 'PUT',credentials: 'include', body: data}).then(function(response) {
+                if (!response.ok) throw new Error(response.statusText)
+                return response.json()
+            }).then(function(data){
+                console.log(data)
+            }).catch(function(err) {
+                console.log(err)
+            })
+        }
+    </script>
+</body>
+</html>

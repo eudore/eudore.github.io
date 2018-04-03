@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>File UpLoad Test</title>
+    <meta charset="UTF-8" />
+    <meta name="description" content="slick Login">
+    <meta name="author" content="Webdesigntuts+">
+    <meta name="viewport" content="width=device-width,user-scalable=no">
+    <script type="text/javascript">
+        "use strict";
+        function upload(){
+            var data = new FormData();
+            //var obj = document.querySelector('input[type="file"]').files
+            var obj = document.getElementById('upload').files
+            if(obj.length==0)
+                return
+            for(var i=0;i<obj.length;i++){
+                data.append('file',obj[i])   
+            }
+            fetch('/file/upload',{ method: 'POST',credentials: 'include', body: data}).then(function(response) {
+                if (!response.ok) throw new Error(response.statusText)
+                document.getElementById('myframe').contentWindow.location.reload(true);
+                return response.text()
+            }).then(function(data){
+                //console.log(data)
+            }).catch(function(err) {
+                console.log(err)
+            })
+        }
+    </script>
+</head>
+<body>
+    <input id="upload" type='file' multiple />
+    <button onclick="upload()">提交</button>
+    <br>
+    <iframe src="/upload" id="myframe" width="600" height="500">
+        <p>Your browser does not support iframes.</p>
+    </iframe>
+</body>
+</html>

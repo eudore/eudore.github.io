@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+</head>
+<body>
+<div class="tree"></div>
+<script>
+	"use strict";
+	function Node(name) {
+		this.name = name
+		this.data = null;
+		this.parent = null;
+		this.children = [];
+	}
+	Node.prototype = {
+		getnode: function(path){
+			if(path.length==1){
+				return this.children.find(function(v){
+					return v.name == path[0]
+				})
+			}else{
+				path = path.slice(1)
+				for(var i of this.children){
+					var d = i.getnode(path)
+					if(d)return d
+				}
+			}
+			return null
+		},
+		getpath: function(){
+			return this.parent.name ? this.parent.getpath()+'/'+this.name : this.name
+		},
+		adddata: function(name,data){
+			var n = this.children.find(function(v){
+				return v.name == name
+			})
+			if(!n){
+				n = new Node(name)
+				this.children.push(n)
+				n.parent = this
+			}
+			n.data = data
+			return n
+		},
+		showtree: function(){
+			if(this.children){
+				var ul = document.createElement('ul')
+				for(var i of this.children)
+				return ul
+			}else{
+
+			}
+		},
+		showdir: function(a){
+			if(a){
+				this.div = document.createElement('div')
+				this.data = '<a href="/note/'+this.getpath()+'">'+this.name+'</a>'
+				this.div.innerHTML = this.data || this.name
+				return this.div
+			}else{
+				var ul = document.createElement('ul')
+				for(var i of this.children){
+					var li = document.createElement('li')
+					li.appendChild(i.showdir(1))
+					ul.appendChild(li)
+				}
+				return ul
+			}
+		}
+	}
+	function Tree(obj) {
+		this.obj = obj
+		this.node = new Node()
+	}
+	Tree.prototype = {
+		getnode: function(path){
+			return path ? this.node.getnode(path.split('/')):this.node
+		},
+		adddata: function(path,data){
+			var par = this.node
+			for(var i of path.split('/')){
+				par = par.adddata(i)
+			}
+			par.data=data
+			return this
+		},
+		showtree: function(){
+			for(var i of this.obj.childNodes){
+				this.obj.removeChild(i)
+			}
+			this.obj.appendChild(this.node.showtree())
+		},
+		showdir: function(path){
+			for(var i of this.obj.childNodes){
+				this.obj.removeChild(i)
+				console.log(i)
+			}
+			var ul = document.createElement('ul')
+			for(var i of path.split('/')){
+				var li = document.createElement('li')
+				li.innerText = i
+				ul.appendChild(li)
+			}
+			this.obj.appendChild(ul)
+			this.obj.appendChild(this.getnode(path).showdir())
+		}
+	}
+	var t = new Tree(document.getElementsByClassName("tree")[0])
+	t.adddata('weer/public/jass')
+	t.adddata('weer/public/jass/yd','ydjass')
+	t.adddata('weer/public/jass/bj','bzbj')
+	t.adddata('weer/public/jass/cj/unit')
+	t.adddata('weer/public/jass/cj/item')
+	t.adddata('weer/public/jass/cj/hashtable')
+	console.log(t.getnode('weer/public/jass'))
+	console.log(t.getnode())
+	t.showdir('weer/public/jass/cj')
+	//t.showtree('weer/public/jass/cj')
+</script>
+</body>
+</html>

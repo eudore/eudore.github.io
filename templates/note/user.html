@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+	<meta charset="utf-8">
+	<meta name="author" content="Webdesigntuts+">
+    <meta name="viewport" content="width=device-width,user-scalable=no">
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
+</head>
+<body>
+<header></header>
+<div>
+	<details>
+		<summary>public</summary>
+		<ol>
+{{range $i, $v := .Public}}
+			<li>{{.v}}</li>
+{{end}}
+		</ol>
+	</details>
+</div>
+<footer></footer>
+</body>
+</html>

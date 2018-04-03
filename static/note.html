@@ -1,0 +1,172 @@
+<html>
+<head>
+	<!--	
+
+	#Document div{margin-left:10px;}
+		#Document p{white-space:nowrap; }
+		#Document span{width:auto;height:15px;}
+		#Document a{width:auto;height:15px;color:#000;text-decoration:none;}
+		#Document a:link,a:visited{background-color:#98bf21;}
+		#Document a:hover,a:active{background-color:#7A991A;}  -->
+	<meta charset="utf-8">
+	<title>Jass API Library</title>
+	<link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
+	<style type="text/css">
+		body{margin:0;padding:0;font:0.8em 'Helvetice Neue',Arial,'Liberation Sans',FreeSans,'Hiragino Sans GB',sans-serif;background-color:#525B75;}
+
+	#Document{width:160px;float:left;}
+	#Document ul{ margin-left: 0px;margin:0;}
+	#Document li:before{content: "\007";}
+	#Document .active:before{content: "-";}
+	#Document .unactive:before{content: "+";}
+	#Document .unactive>ul{display: none}
+		#Display{width:800px;float:right;}
+		#ItemMenu {height: 60px;width: 50px;border: 1px solid gray;background-color: antiquewhite;padding: 10px;display: none;position: absolute;}
+  		#ItemMenu ul,li{margin: 0;padding: 0;list-style-type: none;line-height: 20px;}
+		#Input{left:45%;top:45%;position:absolute;width:100px}
+	</style>
+	<style type="text/css">
+		#head{width:960px;color:#FFF;margin:auto;border-bottom:dashed 1px white;margin-bottom:10px;}
+		#wrapper{width:960px;height:450px;margin:auto;}
+		#footer{height:60px;width:960px;margin:auto;border-top:dashed 1px white;margin-top:30px;}
+	</style>
+	<script src="js/md5.js" integrity="sha256-Mer5EQvRdPdPZkSRxherfbOKVcb1ZBSC+9B3T90GrYo=" crossorigin="anonymous"></script>
+	<script src="js/ajax.js"></script>
+	<script src="js/savedata.js"></script>
+	<link href="high/prism.css" rel="stylesheet">
+	<script src="high/prism.js"></script>
+</head>
+</head>
+<body onload="">
+	<div id="head">
+		<div>
+			<h1>Jass API Library</h1>
+			<h2></h1>
+		</div>
+	</div>
+
+	<div id="wrapper">
+		<div id="Document" onClick="clickIndex()"></div>
+		<div id="Info"></div>
+		<div id="Display"></div>
+	</div>
+	<div id="footer">
+	</div>
+
+	<div id="ItemMenu" style="display:none">
+		<ul>
+		<li onclick="showInput(this)">creat</li>
+		<li onclick="showInput(this)">update</li>
+		<li onclick="showInput(this)">delete</li>
+		</ul>
+    </div>
+	<div id="Input" style="display:none">
+		<input type="text"> </input>
+		<input type="text"> </input>
+		<button>确定</button>
+		<button>取消</button>
+	</div>
+</body>
+<script>
+	"use strict";
+	function GetId(obj){
+		var str=''
+		while(obj.tagName!='DIV'){
+			if (obj.tagName=='LI'){
+				str = obj.children[0].innerHTML + (str?String.fromCharCode(0)+str:'')
+			}
+			obj=obj.parentNode
+		}
+		return str
+	}
+	function LoadData(obj,type,action){
+		console.log(GetId(obj))
+		var MD5=md5(GetId(obj))
+	   	var data = JSON.parse(localStorage.getItem(type+"Data"));
+	    //是否检测数据服务器数据版本
+	    if(data[MD5]==undefined || Math.floor((Date.now()-data[MD5+'date'])/(3600*1000))>0){
+	    	runAjax("GET",'note/'+MD5+'?type='+type,true,'',function(result){
+				if(result!=null){
+					console.log(result)
+	   				var data = JSON.parse(localStorage.getItem(type+"Data"));
+					result=JSON.parse(result)
+					for(var v in result){
+						data[v]=result[v]
+						data[v+'date']=Date.now()
+					}
+					action(obj,data[MD5])
+	    		    localStorage.setItem(type+"Data",JSON.stringify(data))
+				}
+			});
+		}else{
+			action(obj,data[MD5])
+		}
+	}
+	function LoadIndex(obj,data){
+		var keys = Object.keys(data).sort(),sortedObj = {};
+		for(var i in keys) {
+			sortedObj[keys[i]] = data[keys[i]];
+		}
+		var list=document.createElement('ul')
+		for(var value in sortedObj){	
+			var li=document.createElement('li')
+			var span=document.createElement('span')
+			span.innerHTML=value
+			span.oncontextmenu=LoadMenu;
+			if(data[value]){
+				li.className='unactive';
+			}
+			li.appendChild(span)
+			list.appendChild(li)
+		}
+		obj.appendChild(list)
+		obj.className='active'
+	}
+	function clickIndex(){
+		var obj=event.target
+		if (obj.tagName == 'SPAN'){
+			console.log('show'+obj.innerHTML)
+			LoadData(obj.parentNode,'Content',function(path,data){
+				document.getElementById('Display').innerHTML='更新时间：'+data['time']+'<br>'+data['data']
+			});
+		}else if(obj.tagName == 'LI'  && obj.className!=''){
+			var last =obj.children[obj.children.length-1]
+			if (last.tagName == 'UL')
+				if (obj.className=='active'){
+					obj.className='unactive'
+				}else{
+					obj.className='active'
+				}
+			else{
+				LoadData(obj,'Index',LoadIndex);
+			}
+		}
+	}
+	LoadData(document.getElementById('Document'),'Index',LoadIndex);
+
+	var menu = document.getElementById("ItemMenu");
+	var input=document.getElementById("Input");
+	//document.oncontextmenu = 
+	function LoadMenu() {
+		var obj=event.target
+		menu.style.display = "block";
+		menu.style.left = event.clientX + "px";
+		menu.style.top = event.clientY + "px";
+		return false;
+	}
+	document.onclick = function() {
+		menu.style.display = "none";
+	}
+	function showInput(obj){
+		input.style.display="block"
+		input.firstChild.value="ssss"
+	}
+	document.onkeydown=function(e){
+		var keyCode = e.keyCode || e.which || e.charCode;
+		if(keyCode == 27) {
+			input.style.display="none"
+			console.log('esc')
+		}
+	};
+</script>
+</html>

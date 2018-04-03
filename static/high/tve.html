@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+</head>
+<body>
+<pre class="line-numbers"><code class="language-jass">function Trig_InitFunc005A takes nothing returns nothing
+	call UnitAddAbility( GetEnumUnit(), 'A000' )
+	call UnitMakeAbilityPermanent( GetEnumUnit(), true, 'A000' )
+	call TriggerRegisterUnitEvent(gg_trg_Exec, GetEnumUnit(), EVENT_UNIT_DAMAGED)
+endfunction
+
+function Trig_InitActions takes nothing returns nothing
+	local group ydl_group
+	local unit ydl_unit
+	// 删除变量初始单位组
+	call DestroyGroup( udg_group )
+	// 注册地图所有单位-受到伤害、攻击标记
+	set udg_group = GetUnitsInRectAll(GetPlayableMapRect())
+	call ForGroupBJ( udg_group, function Trig_InitFunc005A )
+	call DestroyGroup( udg_group )
+	// 开启触发对后序单位注册
+	call EnableTrigger( gg_trg_Register )	//hehe
+	set ydl_group = null
+	set ydl_unit = null
+endfunction
+
+//===========================================================================
+function 	InitTrig_Init takes nothing returns nothing
+	set gg_trg_Init = CreateTrigger()
+#ifdef DEBUG
+	call YDWESaveTriggerName(gg_trg_Init, "Init")
+#endif
+	call TriggerRegisterTimerEventSingle( gg_trg_Init, 0.00 )
+	call TriggerAddAction(gg_trg_Init, function Trig_InitActions)
+endfunction
+</code></pre>
+
+</body>
+<script type="text/javascript">
+	"use strict";
+	function View(obj){
+		this.obj = obj
+		this.code = obj.innerText.split('\n')
+		this.block = new Block(this,0,this.code.length-1,'block')
+		this.block.handle()
+	}
+	View.prototype = {}
+
+	function Block(view,star,end,type){
+		this.v = view
+		this.star = star
+		this.end = end
+		this.type = type
+		console.log(type+': '+star+' - '+end)
+	}
+	Block.prototype = {
+		status: null,
+		handle:function(){
+			var block = []
+			var func
+			for(var i=this.star;i<=this.end;i++){
+				var line = this.v.code[i].trim()
+				if(/\/\//.test(line)){
+					console.log(line)
+					if(/(.+)(\/\/.*)/.test(line)){
+						var b1=RegExp.$1
+						var b2=RegExp.$2
+						line=b1
+						console.log(line)
+					}
+				}
+				if(/function\s+(\w+)\s+takes\s+nothing\s+returns\s+nothing/.test(line)){
+					func = i
+				}else if(/endfunction/.test(line)){
+					//var code = lines.slice(func,parseInt(i)+1).join('\n')
+					//var name = lines[func].replace(/function\s+(\w+)\s+takes\s+nothing\s+returns\s+nothing/,'$1')
+					//block.push(new Block(this.v,func,i))
+				}
+			}
+			//console.log(funcs)
+			for(var i of block){
+				if(/^InitTrig_(\w+)/.test(i.name)){
+					this.name=RegExp.$1
+					this.Init=i
+					break;
+				}
+			}
+			this.element = document.createElement('div')
+		},
+		display: function(){
+			for(i of this.block){
+				i.display()
+			}
+		}
+	};
+
+	function Line(code){
+		this.code=code
+	}
+	Line.prototype = {
+		display: function(){
+			if(this.node){
+				this.node = document.createElement("div")
+				this.node.innerText = this.code
+				this.node.class="tv-line"
+			}
+		}
+	};
+
+	var et= new View(document.getElementsByClassName("language-jass")[0])
+	//document.getElementsByTagName('body')[0].appendChild(et.element)
+	var data={'name':['title','comment ','function']}
+</script>
+</html>

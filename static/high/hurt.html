@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+	<link href="prism.css" rel="stylesheet">
+	<script src="prism.js"></script>
+</head>
+<body>
+<pre class="line-numbers"><code class="language-jass">function Trig_InitFunc005A takes nothing returns nothing
+    call UnitAddAbility( GetEnumUnit(), 'A000' )
+    call UnitMakeAbilityPermanent( GetEnumUnit(), true, 'A000' )
+    call TriggerRegisterUnitEvent(gg_trg_Exec, GetEnumUnit(), EVENT_UNIT_DAMAGED)
+endfunction
+
+function Trig_InitActions takes nothing returns nothing
+    local group ydl_group
+    local unit ydl_unit
+    // 删除变量初始单位组
+    call DestroyGroup( udg_group )
+    // 注册地图所有单位-受到伤害、攻击标记
+    set udg_group = GetUnitsInRectAll(GetPlayableMapRect())
+    call ForGroupBJ( udg_group, function Trig_InitFunc005A )
+    call DestroyGroup( udg_group )
+    // 开启触发对后序单位注册
+    call EnableTrigger( gg_trg_Register )
+    set ydl_group = null
+    set ydl_unit = null
+endfunction
+
+//===========================================================================
+function InitTrig_Init takes nothing returns nothing
+    set gg_trg_Init = CreateTrigger()
+#ifdef DEBUG
+    call YDWESaveTriggerName(gg_trg_Init, "Init")
+#endif
+    call TriggerRegisterTimerEventSingle( gg_trg_Init, 0.00 )
+    call TriggerAddAction(gg_trg_Init, function Trig_InitActions)
+endfunction
+</code></pre>
+<pre class="line-numbers"><code class="language-jass">function Trig_RegisterActions takes nothing returns nothing
+    // 对新创建进入地图单位注册
+    call UnitAddAbility( GetTriggerUnit(), 'A000' )
+    call UnitMakeAbilityPermanent( GetTriggerUnit(), true, 'A000' )
+    call TriggerRegisterUnitEvent(gg_trg_Exec, GetTriggerUnit(), EVENT_UNIT_DAMAGED)
+endfunction
+
+//===========================================================================
+function InitTrig_Register takes nothing returns nothing
+    set gg_trg_Register = CreateTrigger()
+    call DisableTrigger(gg_trg_Register)
+#ifdef DEBUG
+    call YDWESaveTriggerName(gg_trg_Register, "Register")
+#endif
+    call TriggerRegisterEnterRectSimple( gg_trg_Register, GetPlayableMapRect() )
+    call TriggerAddAction(gg_trg_Register, function Trig_RegisterActions)
+endfunction
+</code></pre>
+<pre class="line-numbers"><code class="language-jass">function Trig_ExecConditions takes nothing returns boolean
+    return ((GetEventDamage() != 0.00))
+endfunction
+
+function Trig_ExecFunc016Func003T takes nothing returns nothing
+    call UnitRemoveAbility( YDLocalGet(GetExpiredTimer(), unit, "t"), 'A001' )
+    // 修正伤害值
+    call DisableTrigger( gg_trg_Exec )
+    call UnitDamageTarget( YDLocalGet(GetExpiredTimer(), unit, "s"), YDLocalGet(GetExpiredTimer(), unit, "t"), YDLocalGet(GetExpiredTimer(), real, "h"), true, false, ATTACK_TYPE_CHAOS, DAMAGE_TYPE_UNKNOWN, WEAPON_TYPE_WHOKNOWS )
+    call EnableTrigger( gg_trg_Exec )
+    call YDLocal3Release()
+    call DestroyTimer(GetExpiredTimer())
+endfunction
+
+function Trig_ExecActions takes nothing returns nothing
+    local timer ydl_timer
+    YDLocalInitialize()
+    // 初始化数据
+    // 进栈，防止伤害重复触发导致数据混乱
+    set udg_Stack = ( udg_Stack + 1 )
+    set udg_Hurt[udg_Stack] = GetEventDamage()
+    set udg_IsAttack[udg_Stack] = UnitHasBuffBJ(GetTriggerUnit(), 'B000')
+    call UnitRemoveAbility( GetTriggerUnit(), 'B000' )
+    // 执行注册触发动作
+    // 按顺序执行触发
+    call ConditionalTriggerExecute( gg_trg_Action1 )
+    call ConditionalTriggerExecute( gg_trg_Action2 )
+    call ConditionalTriggerExecute( gg_trg_Action3 )
+    call ConditionalTriggerExecute( gg_trg_Action4 )
+    // 伤害结算
+    // 伤害变大追加，变少减免
+    if ((udg_Hurt[udg_Stack] >= GetEventDamage())) then
+        // 追加伤害
+        call DisableTrigger( gg_trg_Exec )
+        call UnitDamageTarget( GetEventDamageSource(), GetTriggerUnit(), udg_Hurt[udg_Stack], true, false, ATTACK_TYPE_CHAOS, DAMAGE_TYPE_UNKNOWN, WEAPON_TYPE_WHOKNOWS )
+        call EnableTrigger( gg_trg_Exec )
+    else
+        // 血牌免疫本次伤害
+        call UnitAddAbility( GetTriggerUnit(), 'A001' )
+        set ydl_timer = CreateTimer()
+        call YDLocalSet(ydl_timer, real, "h", udg_Hurt[udg_Stack])
+        call YDLocalSet(ydl_timer, unit, "s", GetEventDamageSource())
+        call YDLocalSet(ydl_timer, unit, "t", GetTriggerUnit())
+        call TimerStart(ydl_timer, 0.00, false, function Trig_ExecFunc016Func003T)
+    endif
+    // 伤害结束，退栈，释放空间
+    set udg_Stack = ( udg_Stack - 1 )
+    call YDLocal1Release()
+    set ydl_timer = null
+endfunction
+
+//===========================================================================
+function InitTrig_Exec takes nothing returns nothing
+    set gg_trg_Exec = CreateTrigger()
+#ifdef DEBUG
+    call YDWESaveTriggerName(gg_trg_Exec, "Exec")
+#endif
+    call TriggerAddCondition(gg_trg_Exec, Condition(function Trig_ExecConditions))
+    call TriggerAddAction(gg_trg_Exec, function Trig_ExecActions)
+endfunction
+
+
+</code></pre>
+</body>
+</html>

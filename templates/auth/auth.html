@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+	<meta charset="utf-8">
+	<meta name="author" content="Webdesigntuts+">
+	<meta name="viewport" content="width=device-width,user-scalable=no">
+	<link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
+	<link href="/css/base.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+	<header>{{template "header"}}</header>
+	<div class="container repository-content">
+		<div class="content box">
+			<div class="top-area">
+				
+				<ul class="nav-links">
+					<li class="active"><a href="">Your projects</a></li>
+					<li><a href="">Starred projects</a></li>
+					<li><a href="">Explore projects</a></li>
+				</ul>
+				<div class="nav-controls">
+					<a href="/auth/projetc/new">New project</a>
+				</div>
+			</div>
+			<div class="projects-list-holder">
+				<ul class="projects-list">
+{{range $k,$v := .data}}
+					<li><a class="project" href="/auth/project/{{$k}}">{{$k}}</a></li>
+{{end}}
+				</ul>
+				<div class="gl-pagination"></div>
+			</div>
+		</div>
+	</div>
+	<footer>{{template "footer"}}</footer>
+</body>
+</html>

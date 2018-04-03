@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+	<link href='prism.css' integrity='sha256-b0irJDEuJXjQuiPKqhbVrWvRCZqlwkS0qkD4kRoX94c=' rel="stylesheet">
+	<script src='prism.js' integrity='sha256-qOTWGnb0RRHoLx2fuUjSQH2nvTiGvBL9GQ3v+waYLeo='></script>
+</head>
+<body>
+<pre class="line-numbers"><code class="language-jass">/*
+
+    //NEW FEATURES
+    
+        LIBRARIES & SCOPES
+        http://www.wc3c.net/vexorian/jasshelpermanual.html#lib
+    
+        GLOBALS BLOCK
+        The ability to declare global variable directly in code. This tremendously facilitates installation of new system without the need for a separate 'variable creator' trigger.
+        http://www.wc3c.net/vexorian/jasshelpermanual.html#gdf
+
+        STRUCTS
+        http://www.wc3c.net/vexorian/jasshelpermanual.html#stru
+    
+        2D ARRAYS
+        http://www.wc3c.net/vexorian/jasshelpermanual.html#twodarray
+
+
+    //NEW NATIVES
+
+        Dynamically Change Fields At Runtime: the following is just a list of commonly requested
+        properties that map-makers would enjoy having access to via triggers:
+        - Get and set a unit’s ability/item cooldown time
+        - Get and set attack damage, armor, attack range, attack speed, attack index, backswing, etc.
+        - Get and set object editor fields at runtime, e.g. a unit’s model, a unit’s attack missile, set tooltips
+        for units/abilities/items, set icons, etc.
+        - Set a unit’s facing, pitch, and roll instantly (setting a unit’s facing currently has turn-speed delay)
+        - Better control over a unit’s portrait
+        - Set a unit’s maximum hit points and mana points++
+        - Get a unit’s damage type
+        - ‘Attack released event’ - an event that fires when an attack is released i.e. released projectile
+
+        Some example are provided below, but in order of importance, 'getters' come before 'setters'. (eg: GetUnitGoldCost() is more important that SetUnitGoldCost(),
+        though having both would be tremendously helpful in a lot of circumstances)
+
+*/
+
+//Fixes
+native GetWidgetLife takes widget w returns real                                             //The real is not exact? Details lacking.
+native EnableOcclusion takes boolean flag returns nothing                                    //Possibly in reference to occlusion being broken in general? Details lacking.
+native TriggerRegisterUnitStateEvent takes trigger whichTrigger, unit whichUnit, unitstate whichState, limitop opcode, real limitval returns event
+                                                                                             //EQUAL is broken? Details lacking.
+native AddUnitToStock takes unit whichUnit, integer unitId, integer currentStock, integer stockMax returns nothing
+                                                                                             //The main tooltip of the added unit will always ignore color tags so the text will always appear to be white. Color tags should be parsed the same as all unit tooltips.
+/*
+    With each of call of this function, the minimap is modified in a bugged way :
+    The positions of units and the fog of war are modified to fit to the new camera bound but not the terrain, nor the destructables.
+    The minimap is compressed (vertically) according to the current camera's rotation. With a rotation of 90°, there is no compression. With a rotation of 227.40, the minimap is fully compressed. Between 227.5 and 312.6, the game crashes.
+    Moreover, the camera bounds will also be adjusted according to the rotation of the current camera. The camera bounds created will be a rectangle going trough the 4 points given and whose sides will be parallel to the camera.
+*/
+native SetCameraBounds takes real x1, real y1, real x2, real y2, real x3, real y3, real x4, real y4 returns nothing
+
+/*
+    Destroy all bound triggeraction objects.
+    Currently it only destroys all bound events, triggercondition and the trigger itself leaving all triggeraction objects to leak unless explicitly destroyed before.
+    Also destroy all currently scheduled trigger threads from that trigger.
+    Currently destroying a trigger with scheduled trigger threads can cause handle stack corruption which has a high chance to cause Warcraft III to crash.
+*/
+native DestroyTrigger takes trigger whichTrigger returns nothing
+
+function SmartCameraPanBJ takes player whichPlayer,location loc,real duration returns nothing
+                                                                                             //This BJ function is currently not net safe. Details explained: https://www.hiveworkshop.com/threads/fixing-smartcamerapanbj-desync.243334/
+
+constant native GetEventDamage takes nothing returns real                                    //Return the amount of life damage taken through an imperfect mana shield. Currently returns 0 or negative only even if the unit takes life damage through the shield.
+
+//Change suggestions
+native SetUnitState takes unit whichUnit,unitstate whichUnitState,real newVal returns nothing
+                                                                                             //Add support for modifying both maximum and regeneration for life and mana. Currently only supports modifying current life.
+native DisplayTimedTextToPlayer takes player toPlayer, real x, real y, real duration, string message returns nothing
+                                                                                             //Change it so that displaying text to a player with unique x and y does not move any other messages.
+
+//NEW CONSTANTS
+constant destructableevent DESTRUCTIBLE_DEATH                //Triggers when a destructible dies. I put this here to standardise the way destructible events work.
+constant destructableevent DESTRUCTIBLE_COMBAT               //Triggers when a destructible takes damage from a combat source. Ignores tree-harvesting.
+constant destructableevent DESTRUCTIBLE_HARVESTED            //Triggers when a destructible takes damage from a tree-harvest ability. Ignores combat damage.
+constant destructableevent DESTRUCTIBLE_DAMAGED              //Triggers when a destructible takes any damage at all.
+
+constant minimapevent PING                                   //Trigger on a minimap ping
+constant minimapevent MINIMAP_BUTTON_PRESSED                 //Triggers when one of the associated minimap buttons have been pressed.
+
+constant mouseevent MOUSE_CLICK                              //Triggers on any mouse click. Conditions determine what mouse button that was (eg left click, right click, side clicks (aka mouse 4, mouse 5), etc)
+constant mouseevent MOUSE_RELEASE                            //Triggers when a mouse click is released. Again conditions determine what button was released.
+constant mouseevent MOUSE_MOVE                               //Triggers when the mouse begins to move.
+constant mouseevent MOUSE_WHEEL_ANY                          //Triggers when the mouse wheel scrolls up or down
+constant mouseevent MOUSE_WHEEL_UP                           //Triggers when the mouse wheel scrolls up
+constant mouseevent MOUSE_WHEEL_DOWN                         //Triggers when the mouse wheel scrolls down
+
+constant unitstate UNIT_STATE_LIFE_REGEN                     //Unit current life regeneration. Compatible with GetUnitState and SetUnitState.
+constant unitstate UNIT_STATE_MANA_REGEN                     //Unit current mana regeneration. Compatible with GetUnitState and SetUnitState.
+
+constant playerevent EVENT_PLAYER_ABILITY_PRESSED            //The event triggers when a player presses an ability button and begins targeting. Requires netsync from the player so is not instant. Most spell event natives like trigger unit and spell ability id work in response to this event.
+
+constant unitevent EVENT_UNIT_DAMAGE_POINT                   //Same as above, but a unitevent instead.
+constant unitevent EVENT_UNIT_MOVES                          //Fires when a unit moves.
+constant unitevent EVENT_UNIT_IDLES                          //Similarly to how worker icons appear at the bottom-left corner of the screen when idling, this event detects when ANY unit is idling.
+constant unitevent EVENT_UNIT_ENTERS_COMBAT                  //What it says on the tin - this event fires when a unit enters combat. Will be useful for in/out of combat regeneration, for example.
+constant unitevent EVENT_UNIT_EXITS_COMBAT                   //What it says on the tin - this event fires when a unit leaves combat. Will be useful for in/out of combat regeneration, for example.
+constant unitevent EVENT_UNIT_EVADE                          //The event triggers when a unit evades an attack using an evade ability (Evasion, Drunken Brawler, etc).
+constant unitevent EVENT_UNIT_REMOVED                        //The event triggers the instant before the unit is removed from the game. Units get removed from the game by a variety of sources such as triggers, decaying or merging.
+constant unitevent EVENT_UNIT_RESOURCE_RETURN                //The event triggers when a unit returns a resource such as from gathering.
+constant unitevent EVENT_UNIT_RESOURCE_HARVEST               //The event triggers when a unit harvests a resource. This event means the amount the unit is carrying has changed.
+
+constant playerunitevent EVENT_PLAYER_UNIT_DAMAGE_POINT      //This triggers when a unit's attack is released - aka when a melee unit hits its target or a ranged unit launches a missile
+constant playerunitevent EVENT_PLAYER_UNIT_DAMAGED           //Same as EVENT_UNIT_DAMAGED except as a player unit event.
+constant playerunitevent EVENT_PLAYER_UNIT_EVADE             //Same as EVENT_UNIT_EVADE except as a player unit event.
+constant playerunitevent EVENT_PLAYER_UNIT_REMOVED           //Same as EVENT_UNIT_REMOVED except as a player unit event.
+constant playerunitevent EVENT_PLAYER_UNIT_RESOURCE_RETURN   //Same as EVENT_UNIT_RESOURCE_RETURN except as a player unit event.
+constant playerunitevent EVENT_PLAYER_UNIT_RESOURCE_HARVEST  //Same as EVENT_UNIT_RESOURCE_HARVEST except as a player unit event.
+
+constant movementtype MOVEMENT_TYPE_NONE                     //Used by natives below.
+constant movementtype MOVEMENT_TYPE_FOOT                     //Used by natives below.
+constant movementtype MOVEMENT_TYPE_HORSE                    //Used by natives below.
+constant movementtype MOVEMENT_TYPE_FLY                      //Used by natives below.
+constant movementtype MOVEMENT_TYPE_HOVER                    //Used by natives below.
+constant movementtype MOVEMENT_TYPE_FLOAT                    //Used by natives below.
+constant movementtype MOVEMENT_TYPE_AMPHIBIOUS               //Used by natives below.
+
+constant armortype ARMOR_TYPE_SMALL                          //Used by natives below.
+constant armortype ARMOR_TYPE_MEDIUM                         //Used by natives below.
+constant armortype ARMOR_TYPE_LARGE                          //Used by natives below.
+constant armortype ARMOR_TYPE_FORTIFIED                      //Used by natives below.
+constant armortype ARMOR_TYPE_NORMAL                         //Used by natives below.
+constant armortype ARMOR_TYPE_HERO                           //Used by natives below.
+constant armortype ARMOR_TYPE_DIVINE                         //Used by natives below.
+constant armortype ARMOR_TYPE_UNARMORED                      //Used by natives below.
+constant armortype ARMOR_TYPE_UNKNOWN                        //Invalid armor type. Has been observed randomly in game, likely as the result of a non fatal memory corruption error to the armor type field.
+
+constant herostat HERO_STAT_STR                              //Used by natives below.
+constant herostat HERO_STAT_AGI                              //Used by natives below.
+constant herostat HERO_STAT_INT                              //Used by natives below.
+
+constant mousebutton MOUSE_BUTTON_LEFT                       //Used by natives below.
+constant mousebutton MOUSE_BUTTON_RIGHT                      //Used by natives below.
+constant mousebutton MOUSE_BUTTON_MIDDLE                     //Used by natives below.
+
+constant catalog CATALOG_UNIT                                //Used by natives below.
+constant catalog CATALOG_ITEM                                //Used by natives below.
+constant catalog CATALOG_ABILITY                             //Used by natives below.
+constant catalog CATALOG_BUFF                                //Used by natives below.
+constant catalog CATALOG_UPGRADE                             //Used by natives below.
+constant catalog CATALOG_DOODAD                              //Used by natives below.
+constant catalog CATALOG_DESTRUCTABLE                        //Used by natives below.
+
+constant resourcetype RESOURCE_GOLD                          //Used by natives below.
+constant resourcetype RESOURCE_LUMBER                        //Used by natives below.
+
+//Terrain
+function GetWaterZ takes real x, real y returns real                                //returns the water level (shallow or deep) since currently GetLocationZ() ignores water level.
+function GetCliffZ takes real x, real y returns real                                //related to this https://www.hiveworkshop.com/threads/calculating-a-flying-units-flyheight.270925/
+
+//Special Effects
+function AddSpecialEffectEffect takes string modelName, effect targetEffect, string attachPointName returns effect
+                                                                                             //Create a special effect attached to another special effect.
+function SetSpecialEffectEffect takes effect fx, effect targetEffect, string attachPointName returns nothing
+                                                                                             //Moves a special effect to the target special effect.
+
+function SetSpecialEffectX takes effect fx, real x returns nothing                           //Moves a special effect relative to the map x axis.
+function SetSpecialEffectY takes effect fx, real y returns nothing                           //Moves a special effect relative to the map y axis.
+function SetSpecialEffectZ takes effect fx, real z returns nothing                           //Moves a special effect relative to the map z axis.
+function SetSpecialEffectLoc takes effect fx, location where returns nothing                 //Moves a special effect to the location.
+function SetSpecialEffectTarget takes effect fx, widget targetWidget, string attachPointName returns nothing
+                                                                                             //Moves a special effect to the target.
+
+function GetLocalSpecialEffectX takes effect fx returns real                                 //Returns the map relative x coordinate of where the effect is positioned. Not net safe for target effects.
+function GetLocalSpecialEffectY takes effect fx returns real                                 //Returns the map relative y coordinate of where the effect is positioned. Not net safe for target effects.
+function GetLocalSpecialEffectZ takes effect fx returns real                                 //Returns the map relative z coordinate of where the effect is positioned. Not net safe for target effects.
+
+function SetSpecialEffectScale takes effect fx, real x, real y, real z returns nothing       //Scales a special effect the same way one can scale destructables.
+function SetSpecialEffectRoll takes effect fx, real angle returns nothing                    //Set the roll angle of a special effect.
+function SetSpecialEffectPitch takes effect fx, real angle returns nothing                   //Set the pitch angle of a special effect.
+function SetSpecialEffectFacing takes effect fx, real angle returns nothing                  //Sets the XY facing angle of a special effect.
+function SetSpecialEffectColor takes effect fx, playercolor color returns nothing            //Alters the team color used by a special effect.
+
+//Unit Functions
+/*
+    List of useful unit functions. Some are often requested.
+*/                       
+function GetUnitIconPath takes unit u returns string                                         //Returns the command card icon path of a unit.
+function GetUnitTypeIconPath takes integer unitId returns string                             //Returns the command card icon path of a unit type.
+function SetUnitIconPath takes unit u, string path returns nothing                           //Changes the command card icon path of a unit.
+
+function GetUnitModelPath takes unit u returns string                                        //Returns the model path of a unit.
+function GetUnitTypeModelPath takes integer unitId returns string                            //Returns the model path of a unit type.
+function SetUnitModelPath takes unit u, string path returns nothing                          //Changes the model path of a unit.
+
+function SetUnitName takes unit u, string name returns nothing                               //Changes the unit type name of a unit to the specified string.
+function SetHeroName takes unit u, string name returns nothing                               //Changes the hero name of a hero unit to the specified name. Does nothing to non hero units.
+function SetUnitLevel takes unit u, integer newLevel returns nothing                         //Set the unit level of a non hero unit to the specified level. Does nothing to heroes.
+
+function SetUnitMaxSpeed takes unit u, real r returns nothing                                //Does maximum and minimum unit speed even do anything? If so, the ability to modify those would be welcome. Units could be made to accelerate and decelerate like in Sc2.
+function GetUnitMaxSpeed takes unit u, nothing returns real
+function SetUnitMinSpeed takes unit u, real r returns nothing
+function GetUnitMinSpeed takes unit u, nothing returns real
+
+function GetUnitAttackTime takes unit u, integer index returns real                          //Returns the cooldown time of a particular attack index (0 or 1) of a unit, with attack speed modifiers (eg: Glove of Haste, Cripple) factored in.
+function SetUnitAttackTime takes unit u, integer index, real amount returns nothing          //Set the base cooldown time of a particular attack index of a unit, reapplying all attack speed modifiers as appropiate.
+function ModifyUnitAttackTime takes unit u, integer index, real fraction returns nothing     //Applies fraction attack speed modifier to a particular attack index of a unit, being treated the same as other attack speed modifiers including limits.
+function GetUnitAttackDamageMin takes unit u, integer index returns integer                  //Returns the minimum attack damage of a particular attack index of a unit, with damage modifiers (eg: Command Aura, Claws of Attack +16) factored in.
+function GetUnitAttackDamageMax takes unit u, integer index returns integer                  //Returns the maximum attack damage of a particular attack index of a unit, with damage modifiers factored in.
+function SetUnitAttackDamageMin takes unit u, integer index, integer min returns nothing     //Changes the base minimum attack damage of a particular attack index of a unit to an exact value, reapplying all damage modifiers as appropiate. Will override bonuses from upgrades.
+function SetUnitAttackDamageMax takes unit u, integer index, integer max returns nothing     //Changes the base maximum attack damage of a particular attack index of a unit to an exact value, reapplying all damage modifiers as appropiate. Will override bonuses from upgrades.
+function ModifyUnitAttackDamage takes unit u, integer index, integer amount returns nothing  //Applies damage modifier to a particular attack index of a unit, being treated the same as other damage modifiers.
+
+function SetUnitMovementType takes unit u, movementtype movementType returns nothing         //Changes the movement type of a unit to the specified movement type.
+function GetUnitMovementType takes unit u returns movementtype                               //Get the movement type of a unit.
+
+function SetUnitVisionType takes unit u, boolean flying                                      //Changes the vision mechanics of a unit to either be ground (can be occluded by terrain) or flying (absolute).
+
+function SetItemStock takes unit u, integer itemId, integer stock returns nothing            //Set the stock of an item id in a shop to the specified number. Maximum stock count is respected and if full cooldown progress will be lost.
+function SetItemStockMax takes unit u, integer itemId, integer stock returns nothing         //Set the maximum stock permitted of an item id in a shop to the specified number. Maximum stock count is respected and if below current stock cooldown and stock items will be lost.
+function GetItemStock takes unit u, integer itemId returns integer                           //Get the stock available of an item id in a shop.
+function GetItemStockMax takes unit u, integer itemId returns integer                        //Get the maximum stock permitted of an item id in a shop.
+
+function GetLocalUnitZ takes unit u returns real                                             //Get the exact map relative z coordinate of the unit origin. This is the visual height of the unit in the game world. Not net safe.
+function GetUnitCollisionSize takes unit returns real                                        //Seturns the collision size of a unit. The returned value factors in collision size limits so might be smaller than in the object editor.
+function SetUnitFacingInstant takes unit u, real facingAngle returns nothing                 //Similar to SetUnitFacing but with angle change being instant with turn rate and orientation interpolation being ignored. Angle is in degrees.
+function SetUnitFacingInstantRad takes unit u, real facingAngle returns nothing              //Same as SetUnitFacingInstant except angle is in radians.
+function SetUnitFacingRad takes unit whichUnit, real facingAngle returns nothing             //Same as SetUnitFacing except angle is in radians.
+
+function GetUnitAttackCooldownRemaining takes unit u returns real                            //Returns the remaining time in game seconds of the currently occuring attack cooldown. Returns 0.0 if attack is not on cooldown.
+function SetUnitAttackCooldown takes unit u, real duration returns nothing                   //Sets the current attack cooldown time to a different value, potentially overriding/ignoring backswing point. Set to zero to cause the next attack to occur instantly. Can start attack cooldown.
+
+function UnitAttackTarget takes unit whichUnit, widget target, real amount, attacktype attackType, damagetype damageType, weapontype weaponType returns boolean
+                                                                                             //Similar to UnitDamageTarget but does so with the source's attack modifiers like Orb Effects, Critical Strike, Bash, Lifesteal, etc.
+function UnitAttackArea takes unit whichUnit, real radius, real x, real y, real amount, attacktype attackType, damagetype damageType, weapontype weaponType, boolexpr filterFunc returns boolean
+                                                                                             //Just like UnitAttackTarget(), but this takes a boolexpr argument at the end to filter out unwanted victims. This is helpful in the case of area attacks with chance modifiers like bash.
+
+function UnitInterruptAttack takes unit u returns nothing                                    //Stops the current attack from occuring and triggers attack cooldown for the intended attack index. Call is only valid during backswing time or for trigger unit in response to EVENT_UNIT_ATTACKED and EVENT_PLAYER_UNIT_ATTACKED events.
+function GetUnitArmorType takes unit u returns armortype                                     //Returns the armor type of a unit.
+function SetUnitArmorType takes unit u, armortype armorType returns nothing                  //Sets the armor type of a unit.
+function GetUnitArmor takes unit u, boolean includeBonuses returns real                      //Returns the armor value of a unit. If includeBonuses is true then include all armor modifiers (eg: Devotion Aura, Faerie Fire).
+function SetUnitArmor takes unit u, real amount returns nothing                              //Changes the base armor value of a unit, reapplying all armor modifiers as appropiate.
+function ModifyUnitArmor takes unit u, real amount returns nothing                           //Applies armor modifier to a unit, being treated the same as all other armor modifiers.
+
+function UnitDisableMovement takes unit u, boolean flag returns nothing                      //toggles a unit's movement on or off. Currently feasible with SetUnitPropWindow to zero, but restoring requires radians but GetUnitDefaultPropWindow returns degrees. Not a big issue, but it's hidden information.
+function UnitDisableTurning    takes unit u, boolean flag returns nothing                    //toggles a unit's ability to turn on or off.
+function UnitDisableControl takes unit u boolean flag returns nothing                        //toggles whether a unit responds to player commands on or off. Can still respond to trigger commands.
+function UnitFullDisable takes unit u, boolean flag returns nothing                          //toggles whether a unit responds to ANY commands on or off. Similar to being stunned, but will not 'unstun' until UnitFullDisable is set to false.
+function UnitDisableAttack takes unit u, boolean flag returns nothing                        //Turns off one of the two attack indices. Currently feasible by adding Cargo Hold ability to the unit, but it disables both indices.
+function UnitDisableSelection takes unit u, boolean flag returns nothing                     //Same as giving Locust ability to a unit (Aloc), but can be enabled/disabled without any buggy side effects.
+
+function IsUnitSelectable takes unit u returns boolean                                       //returns true or false on whether a unit can be selected or not. Eg would return false on a unit with Locust ability (Aloc).
+function IsUnitInvulnerable takes unit u returns boolean                                     //returns whether a unit is invulnerable or not
+
+function UnitCancelTimedLife takes unit u returns nothing                                    //Cancels a previously applied UnitApplyTimedLife or automatic expiration timer of a summoned unit.
+function UnitApplyTimer takes unit u, integer buffId, real timeout returns timer             //Applies a non-fatal timer to a unit that shows the time ticking down like with a spell like Avatar or Metamorphosis. When the timer expires, a TimerRegisterExpireEvent fires.
+function UnitDisableItems takes unit u, boolean flag, boolean passive returns nothing        //Toggles whether a unit can use items. Item passive effects are optionally able to be turned on or off.
+
+function GetLocalTargetAttachmentX takes widget who, string attachmentname returns real      //Get the map relative x coordinate of the specified attachment site. Not net safe.
+function GetLocalTargetAttachmentY takes widget who, string attachmentname returns real      //Get the map relative y coordinate of the specified attachment site. Not net safe.
+function GetLocalTargetAttachmentZ takes widget who, string attachmentname returns real      //Get the map relative z coordinate of the specified attachment site. Not net safe.
+
+function UnitHideAbility takes unit u, integer abilityId, boolean flag returns nothing       //Shows or hide an ability command card button for the unit. Does not disable the ability itself.
+function UnitDisableAbility takes unit u, integer abilityId, boolean flag returns nothing    //Enables or disables an abilty for the unit. Will also disable passives.
+
+function GetUnitAbilityCooldownTimeout takes unit u, integer abilityId returns real          //Returns the cooldown time for an ability if the unit were to use it.
+function GetUnitAbilityCooldownRemaining takes unit u, integer abilityId returns real        //Returns the remaining cooldown time of an ability on a unit.
+function SetUnitAbilityCooldown takes unit u, integer abilityId, real timeout, real remaining returns nothing
+                                                                                             //Modifies the current cooldown progress of an ability for a unit. Timeout will clamp remaining for logical reasons. Set timeout or remaining to zero to instantly complete cooldown.
+function GetUnitAbilityManaCost takes unit u, integer abilityId returns integer              //Returns the potential mana cost of an ability for a unit.
+function IsUnitAbilityOnCooldown takes unit u, integer abilityId returns boolean             //Returns true if an ability is on cooldown for a unit.
+
+function UnitChangeUnitId takes unit u, integer unitid returns nothing                       //Changes the unit type ID of a unit. Results are the same as unit a morph ability except without needing an ability.
+function ReviveUnit takes unit u returns nothing                                             //Revives a dead unit at the position of its corpse. Mechanically the same as the unit being effected by Paladin's Resurrection ability.
+
+function GroupEnumCorpsesInRange takes group g, real x, real y, real radius, boolexpr filter returns nothing
+                                                                                             //Convenience function to enum all corpses in range of a position.
+function GroupEnumCorpsesInRangeloc takes group g, location whichLocation, real radius, boolexpr filter returns nothing
+                                                                                             //Same as above but with location parameter.
+
+function GetUnitGoldCost takes integer unitid returns integer                                //AI native copied to normal JASS for convince.
+function GetUnitWoodCost takes integer unitid returns integer                                //AI native copied to normal JASS for convince.
+
+function IsUnitMoving takes unit u returns boolean                                           //Returns true if a unit is trying to move. The unit might not actually be moving if it is waiting for the pathfinder to attend to it.
+function IsUnitIdle takes unit u returns boolean                                             //Returns true if a unit is not moving, is not attacking, is not casting and is not using an item.
+function IsUnitInCombat takes unit u returns boolean                                         //Returns true if a unit has recently attacked or been attacked. Possibly tied into the forces under attack mechanics?
+
+function GetAbilityManaCost takes integer abilityId, integer level returns integer           //Returns the ability cost of an ability.
+function SetAbilityManaCost takes integer abilityId, integer level, integer newcost returns integer
+function GetAbilityCooldown takes integer abilityId, integer level returns real              //Returns the cooldown time of an ability.
+function SetAbilityCooldown takes integer abilityId, integer level, integer newcool returns integer
+
+/*
+    NB: Abilities are reference from a global cache, so it stands to reason that a native that modifies independent of a unit will change that ability globally. While this is a nice
+    tool to have, it would be even nicer to have the capability to modify them individually. However, this could hike up the performance cost of the game itself since every unit in the
+    game will have its own personal version of that ability.
+*/
+function GetUnitAbilityManaCost takes unit u, integer abilityId, integer level returns integer
+function SetUnitAbilityManaCost takes unit u, integer abilityId, integer level, integer newcost returns integer
+function GetUnitAbilityCooldown takes unit u, integer abilityId, integer level returns real
+function SetUnitAbilityCooldown takes unit u, integer abilityId, integer level, integer newcool returns integer
+
+function GetHeroPrimaryStat takes unit u returns herostat                                    //Returns the integer code for the attribute that is set as primary. Eg if the unit is a Paladin, it returns the id for Strength.
+function GetHeroPrimaryStatById takes integer unitid returns herostat                        //Same as above but references the object editor value instead of an actual unit.
+function SetHeroPrimaryStat takes unit u, herostat stat returns integer                      //Allows the game to individual modify which attribute of the hero becomes its primary. Damage modifier from primary hero stat has to be reapplied.
+function GetHeroStat takes herostat whichStat, unit whichHero, boolean includeBonuses returns integer
+                                                                                             //Mechanically same as the GetHeroStatBJ function except takes the new native herostat constants.
+function SetHeroStatEx takes unit whichHero, herostat whichStat, integer value, boolean permanent returns nothing
+                                                                                             //Mechanically similar to the SetHeroStat function except takes the new native herostat constants and can set permanence.
+
+function GetBuilderUnit takes unit building returns unit                                     //Returns the unit that constructed a building/unit. In the case of buildings this should be the unit that converted the foundation into a unit.
+function GetUnitBuildProgress takes unit u returns real                                      //Returns the fraction (percent / 100) completion of a building/unit in progress. If the unit has no progress (already built) returns 1.0.
+function SetUnitBuildProgress takes unit u, real fraction returns nothing                    //Modifies the fraction completion of a building/unit in progress. A fraction of 1.0 causes the unit to be instantly completed. Does nothing to a unit that is complete.
+function GetUnitTrainProgress takes unit factory returns real                                //Returns the fraction completion of a unit that is being trained. Returns 1.0 if no unit is being trained.
+function SetUnitTrainProgress takes unit factory, real fraction returns nothing              //Modifies the fraction completion of a unit that is currently being trained. A fraction of 1.0 causes the unit to be instantly trained. Does nothing to a factory that is not training anything.
+function GetTrainingQueueSize takes unit factory returns integer                             //Returns the number of queued training orders.
+function GetMaxTrainingQueueSize takes unit factory returns integer                          //Returns the maximum number of queued training orders a factory allows.
+function CancelTraining takes unit factory, integer slot returns boolean                     //Cancels a train order from the training queue of a building determined by slot number (eg 0 - 6). Returns true if a unit was actually canceled.
+function ClearTrainingQueue takes unit factory returns boolean                               //Equivelant to calling CancelTraining on all occupied training slots of a building. Returns true if at least 1 training order was canceled.
+
+function GetItemAbilityCooldownRemaining takes item whichItem returns real                   //Returns the remaining cooldown time on a used item.
+function GetItemAbilityCooldownTimeoutById takes integer itemId returns real                 //Returns the default timeout cooldown of an item type.
+function SetItemAbilityCooldown takes item whichItem, real timeout, real remaining returns real
+                                                                                             //Sets the remaining cooldown time of an item to a specific value. Timeout will clamp remaining for logical reasons and might be ignored for unowned items. Set timeout or remaining to zero to instantly complete cooldown.
+function EnableItem takes item whichItem, boolean flag returns nothing                       //Enables/Disables an item. Items that are disabled provide no modifiers and cannot be used.
+
+function GetUnitBuildTime takes integer unitid returns integer                               //AI native ported to standard JASS.
+function GetHeroBuildTime takes integer unitid, player whichPlayer returns integer           //Returns the train time in seconds for a player to make the specified hero type. Factors in train time increases with sequential heroes in melee.
+function GetHeroReviveTime takes unit whichUnit returns integer                              //Returns the revive time in seconds for a player to revive the specified hero if it were dead.
+
+//Damage Event Extensions
+function GetEventDamageAttackType takes nothing returns attacktype                           //In response to a damage event returns the attacktype (Spell, Hero, Chaos, etc) of the damage.
+function GetEventDamageDamageType takes nothing returns damagetype                           //In response to a damage event returns the damagetype (unkown, magic, normal, enhanced, etc) of the damage.
+function GetEventDamageAbilityId takes nothing returns integer                               //In response to a damage event returns the ability ID that caused the damage. This ability can be a damage spell (Flame Strike, Storm Bolt, etc) or an attack modifier ability (Cold Arrow, orb of fire, etc). Normal attack damage returns some safe default value such as 0.
+function GetEventDamageUnmodified takes nothing returns real                                 //In response to a damage event returns the damage dealt to the unit before any modifications (armor, attacktype reduction, etc) were applied.
+function GetEventDamageMana takes nothing returns real                                       //In response to a damage event returns the mana lost due to an active mana shield.
+
+//Resource Event Extensions
+function GetEventResourceType takes nothing returns resourcetype                             //The resource type the event responded to. For example RESOURCE_LUMBER when a wisp unit gathers lumber.
+function GetEventResourceAmount takes nothing returns integer                                //The resource amount the event responded to. For example 10 when a Haunted Gold Mine extracts 10 gold.
+
+//UI Functions
+function ShowUI takes boolean flag returns nothing                                           //True/false arguments would show/hide the UI. That includes disabling the black borders at the top and bottom of the screen.
+function ShowManaBar takes boolean flag returns nothing                                      //Turns mana bar display over units on or off. Whether they display depends on the player's Gameplay options but this can overwrite that for a session.
+function SetPlayerHPBarColor takes player p, real red, real green, real blue returns nothing //Changes the health bar color of units belonging to a particular player.
+function SetPlayerMPBarColor takes player p, real red, real green, real blue returns nothing //Changes the mana bar color of units belonging to a particular player.
+function CreateBar takes real red, real green, real blue, real alpha returns bar             //'New' object type. Creates a bar (like the health bars above units) and colours them according to the values used. Eg recreating Protoss shields.
+function AttachBarTarget takes bar whichBar, widget target, real z returns nothing           //Attaches a bar to a unit, destructable, item etc with the option to move it up and down the z axis.
+function GetBarX takes bar whichBar returns real                                             //Returns the x coordinate of a bar.
+function GetBarY takes bar whichBar returns real                                             //Returns the y coordinate of a bar.
+function GetBarZ takes bar whichBar returns real                                             //Returns the z coordinate of a bar.
+function SetBarPos takes bar, real x, real y, real heightOffset returns nothing              //Manually repoisitions a bar to map relative coordinates like floating texts.
+function DisplayScreenMessage takes string s, real x, real y, real timeout returns nothing   //This displays a text message for a period but with respect to normalised X / Y value of the screen. Can overlap other text messages. An invalid timeout will automatically compute a timeout based on message length.
+function GetLocalDisplayResolutionHorizontal takes nothing returns real                      //Returns the horizontal resolution in pixels being used to display Warcraft III for the local client. Not net safe.
+function GetLocalDisplayResolutionVertical takes nothing returns real                        //Returns the vertical resolution in pixels being used to display Warcraft III for the local client. Not net safe.
+
+//Minimap Functions
+function GetPingX takes ping whichPing returns real                                          //returns the corresponding map relative x coordinate of a ping.
+function GetPingY takes ping whichPing returns real                                          //returns the corresponding map relative y coordinate of a ping.
+function TriggerRegisterPlayerPingEvent takes trigger whichTrigger, player whichPlayer returns event
+                                                                                             //New event that fires the trigger when the specified player sends a ping. Both GetTriggerPlayer and GetTriggerPing are valid with this event.
+function GetTriggerPing takes nothing returns ping                                           //In response to a player ping event returns the ping object that triggered the event.
+
+//Mouse input functions
+function GetLocalCursorTargetX takes nothing returns real                                    //Returns the map relative x coordinate that the local client cursor is targeting. If the cursor is not targeting anything on the map returns 0. Not net safe.
+function GetLocalCursorTargetY takes nothing returns real                                    //Returns the map relative y coordinate that the local client cursor is targeting. If the cursor is not targeting anything on the map returns 0. Not net safe.
+function GetLocalCursorTargetZ takes nothing returns real                                    //Returns the map relative z coordinate that the local client cursor is targeting. If the cursor is not targeting anything on the map returns 0. Not net safe.
+function SetLocalCursorX takes real x returns nothing                                        //Set the local client cursor position to the specified screen space normalised x coordinate.
+function SetLocalCursorY takes real y returns nothing                                        //Set the local client cursor position to the specified screen space normalised y coordinate.
+function IsLocalCursorOverUI takes nothing returns boolean                                   //Returns true if the cursor is currently not targeting the map. Not net safe.
+function IsLocalMouseButtonPressed takes mousebutton mouseButton returns boolean             //Returns true or false depending on which mouse button is being held down. Will be useful for click-and-drag functions. Not net safe.
+function TriggerRegisterPlayerMouseEvent takes whichTrigger, player whichPlayer, mouseevent mouseEvent returns event
+                                                                                             //Mouse click/drag/release events. All mouse events go here. See constants. Attaching this event causes periodic mouse sync traffic from the player.
+function GetTriggerMouseEvent takes nothing returns mouseevent                               //In response to player mouse event returns which mouseevent triggered the trigger.
+function GetTriggerMouseX takes nothing returns real                                         //In response to player mouse event returns the screen space normalised x coordinate the event occurred at. Is net safe.
+function GetTriggerMouseY takes nothing returns real                                         //In response to player mouse event returns the screen space normalised y coordinate the event occurred at. Is net safe.
+function GetTriggerMouseMapX takes nothing returns real                                      //In response to player mouse event returns the map relative x coordinate the event occurred at. Return value non 0.0 only if the mouse event targeted the map. Is net safe.
+function GetTriggerMouseMapY takes nothing returns real                                      //In response to player mouse event returns the map relative y coordinate the event occurred at. Return value non 0.0 only if the mouse event targeted the map. Is net safe.
+function GetTriggerMouseMapZ takes nothing returns real                                      //In response to player mouse event returns the map relative z coordinate the event occurred at. Return value non 0.0 only if the mouse event targeted the map. Is net safe.
+
+//Keyboard
+function TriggerRegisterPlayerKeyboardEvent takes trigger whichTrigger, player whichPlayer, keyboardbutton hotkey, boolean state returns event
+                                                                                             //Fires when the corresponding key is pressed by the player. The keyboardbutton constants are not mentioned but should cover most common keyboard buttons. If state is true then fires when key is pressed, otherwise fires when key is released. Attaching this event causes keyboard button sync traffic from the player.
+function GetTriggerKeyboardButton takes nothing returns keyboardbutton                       //In response to player keyboard event returns which button caused the event.
+function GetTriggerKeyboardState takes nothing returns boolean                               //In response to player keyboard event returns the state that caused the event. True if it was pressed, false if released.
+
+function GetLocalKeyboardButtonState takes keyboardbutton whichButton returns boolean        //Returns true if the local client has the specified keyboard button (eg arrow keys) depressed or false if released. Not net safe.
+
+//Destructable
+function IsDestructableTree takes destructable d returns boolean                             //Returns true if a destructable can be used as a tree. Otherwise false.
+function TriggerRegisterDestructibleEvent takes trigger whichTrigger, destructable d, destructableevent whichEvent returns event
+                                                                                             //Like TriggerRegisterUnitEvent. Some of the important event constants are listed but others might also exist.
+function TriggerRegisterAnyDestructibleEvent takes trigger whichTrigger, destructableevent whichEvent returns event
+                                                                                             //Like TriggerRegisterDestructibleEvent except applies to all destructables on the map, even ones yet to be created.
+
+//Trackables
+function SetTrackablePos takes trackable t, real x, real y returns nothing                   //Moves a trackable to the specified map realative coordinate.
+function SetTrackableZ takes trackable t, real z returns nothing                             //Sets the map realative z coordinate of the trackable. This disables automatic Z positioning.
+function SetTrackableZOffset takes trackable t, real zOffset returns nothing                 //Sets the Z offset of a trackable. This is realitive to the Z it is automatically positioned at. This enables automatic Z positioning.
+function GetTrackableX takes trackable t returns real                                        //Returns the map relative x coordinate of the trackable.
+function GetTrackableY takes trackable t returns real                                        //Returns the map relative y coordinate of the trackable.
+function GetTrackableZ takes trackable t returns real                                        //Returns the map relative z coordinate of the trackable if in map relative z mode. Returns the z offset if in automatic z mode.
+function DestroyTrackable takes trackable t returns nothing                                  //Trackables currently cannot be destroyed through triggers, so this native is needed for them to be useful.
+
+//Uberspalts
+function SetUbersplatPos takes ubersplat u, real x, real y returns nothing                   //Moves an ubersplat to a new map relative coordinate.
+function SetUbersplatScale takes ubersplat u, real x, real y returns nothing                 //Allows the distortion of an ubersplat. This is applied to the ubersplat in its default orientation before it is rotated.
+function SetUbersplatFacing takes ubersplat u, real angle returns nothing                    //Allows an ubersplat to be rotated. Useful for hazard markers or hit markers. Angle is in degrees.
+function SetUbersplatFacingRad takes ubersplat u, real angle returns nothing                 //Same as SetUbersplatFacing except angle is in radians.
+
+//Triggers
+function EvaluateBoolexpr takes boolexpr func returns boolean                                //Simple function to evaluate a boolexpr in a single call. Currently one has to bind it to a trigger as a condition, evaluate the trigger and then destroy the trigger after evaluation. The way the boolexpr is executed should be similar to the current trigger approach.
+
+//Benchmarking
+/*
+    Whoever suggested these did not explain their purpose or what they are meant to do.
+    I am guessing they are meant to be client local performance counters for measuring performance of various scripts.
+    If this is the case then all calls made to these during multiplayer these should return default safe values that do nothing.
+*/
+function CreateStopWatch takes nothing returns stopwatch                                     //Create a performance counter stop watch.
+function StopWatchStart takes stopwatch returns nothing                                      //Start the stop watch, causing it to record time progression. If it has been paused, resumes recording.
+function GetStopWatchTime takes stopwatch returns real                                       //Pause the stop watch and get the current elapsed stop watch time, which is the sum of all time it has been left running.
+function StopWatchEnd takes stopwatch returns nothing                                        //Destroy the stop watch freeing all resources it used.
+function StopWatchPause takes stopwatch returns nothing                                      //Pause the stop watch causing it to stop recording time progression. If trying to accuratly measure execution time of a piece of script this should be called between game frames to prevent the stop watch measuring the game loop time.
+
+//Debugging
+function DisplayErrorMsg takes string s, real duration returns nothing                       //Display the given error message string in the error message area. The message is also written out to an error log file.
+
+function GetOPLimit takes nothing returns integer                                            //Get the current remaining JASS thread operation limit. Due to how the JASS virtual machine works the returned value may be larger than the actual limit by the time it can be processed.
+function SetOPLimit takes integer newlimit returns nothing                                   //Changes the current JASS thread operation limit to the specified value. Due to how the JASS virtual machine works the actual limit may be slightly smaller than the specified amount by the time the function returns. Care must be taken when using this native as it negates the infinite loop protection offered by the operation limit.
+function ResetOPLimit takes nothing returns nothing                                          //Resets the current JASS thread operation limit to the default operation limit of that thread, as if it was freshly created. Due to how the JASS virtual machine works the actual limit may be smaller than the default amount by the time the function returns. Care must be taken when using this native as it negates the infinite loop protection offered by the operation limit.
+
+type func extends code                                                                       //Function type to be used with debugging natives. Possibly has special syntax requirements to prevent code exploit.
+function TriggerRegisterJassOpLimitEvent takes trigger whichTrigger returns event            //Event fires in response to a JASS virtual machine thread crash as a result of the thread reaching its operation limit. Useful for detecting when a thread crash occurs.
+function TriggerRegisterJassDivideByZeroEvent takes trigger whichTrigger returns event       //Event fires in response to a JASS virtual machine thread crash as a result of attempted division by 0. Useful for detecting when a thread crash occurs.
+function TriggerRegisterJassNoBlockEvent takes trigger whichTrigger returns event            //Event fires in response to a JASS virtual machine thread crash as a result of attempting to block when blocking is not allowed (eg TriggerSleepAction in a condition function). Useful for detecting when a thread crash occurs.
+function GetTriggerFunction takes nothing returns func                                       //In response to all JASS thread crash events returns the function the crash occured at.
+function GetEventJassError takes nothing returns string                                      //In response to all JASS thread crash events returns a human readable string with as much information about the crash as possible. Intended to be printed out or logged to help map makers track down where/why a thread crash occured.
+function GetHandleIdCount takes nothing returns integer                                      //Returns the number of currently allocated handle ids. If this number is observed increasing as a game progresses there is likely an object leak of sorts.
+function GetHandleIdFreeCount takes nothing returns integer                                  //Returns the number of handle ids on the free handle id stack. If this number is very large then either the map has suffered from object count reduction over time or there was a step that required a large number of objects be created and destroyed.
+
+//Dialog
+function IsPlayerInDialog takes player p returns boolean                                     //Returns true if the player currently has any dialog box visible to them. Might require net sync.
+
+//Object Editor API
+/*
+    Read only object editor API. Similar to StarCraft II catalog natives, hence the naming.
+    The field string would be the attribute key in the object editor, ie "regenHP" for the unit's base health regeneration.
+    Passing an invalid key (or one that would return an incorrect data type for the function) would return some sensible default (0, 0.0, null, etc).
+*/
+function GetUnitTypeAttributeInteger takes catalog whichCatalog, integer typeId, string field returns integer
+function GetUnitTypeAttributeReal takes catalog whichCatalog, integer typeId, string field returns real
+function GetUnitTypeAttributeString takes catalog whichCatalog, integer typeId, string field returns string
+
+//Custom UI
+/*
+    Someone suggested the ability to customize the UI similar to StarCraft II where one can place custom UI elements anywhere on a clients screen.
+    They did not suggest an API to do this however.
+    Due to the complexity of such an API I would suggest looking at StarCraft II's implementation which allows the UI to be heavilly customized.
+*/
+
+//NOTES
+/*
+    This list of suggested additions is meant as a way to streamline existing processes or change them entirely.
+*/
+
+//Proxies
+/*
+    Proxies are essentially units - dummy casters to be exact, that are less performance-heavy. They have no collision, no model (though you may attach something to their "origin"), no
+    movement type, nothing. They only move through triggers (SetUnitX/Y) and can cast spells regardless of mana cost, tech requirement, cooldown. They can also cast an unlimited amount
+    of spells without any downtime so potentially only 1 proxy will ever be needed per map, or per player. One key aspect to proxies is that all actions they take is creditted to a source
+    unit, so this way if a proxy kills a unit using a spell, the game will register the source unit as having earned that kill. Depending on the allegiance of the source will determine
+    whether a target can be hit with a spell or not (eg: if the source is an ally of the target of the Proxy, the Proxy cannot cast Storm Bolt at the target).
+
+    NB: the Proxy type is affected by most of the relevant unit triggers, like SetUnitX/Y and RemoveUnit. It can be added to unit groups, etc.
+*/
+function CreateAbilityProxy takes unit source, real x, real y, real z returns proxy    //This is essentially a dummy of which all the actions it takes will be credited to the source.
+function SetProxySource takes proxy dummy, unit source returns nothing               //Modifies the source of the proxy.
+
+//ApllySpellEffect
+/*
+    This approach is an attempt to change the way modders apply spells to targets. Rather than using dummy units, what if spells - and their corresponding effect - could be cast directly on
+    a target unit/point? There are multiple ways in which we thought this could happen, but ultimately it's up to the people with the source code who will know how best to do this.
+*/
+
+Method 1
+
+    The ApplySpellEffect idea will look like spells can be cast at any point, anywhere. However, there's the issue of auras, which means that those natives should probably return something other than a boolean (maybe a spelleffect type?)
+
+    function ApplySpellEffect takes player owner, real x, real y, integer abilcode returns nothing                            //returns false for spells that only affect the caster (eg. Storm Crow Form)
+    function ApplySpellEffectTarget takes player owner, unit target, integer abilcode returns boolean                        //returns null if the target is invalid (eg Spell immune, invulnerable, etc)
+    function ApplySpellEffectPoint takes player owner, real xcast, real ycast, real zcast, real xtarget, real ytarget, integer abilcode returns boolean //returns false on untargertable context (eg Inferno over water, Force of Nature with no trees)
+    function ApplySpellEffectChanneled takes player owner, real x, real y, real timeout, integer abilcode returns boolean    //ends after the timer has expired. The timeout overrides the spell's internal duration.
+    function ApplySpellEffectTargetChanneled takes player owner, unit target, real timeout, integer abilcode returns boolean                       
+    function ApplySpellEffectPointChanneled takes player owner, real xcast, real ycast, real zcast, real xtarget, real ytarget, real timeout, integer abilcode returns boolean
+
+
+Method 2
+
+    While the above could work, I suppose it's hardly the most elegant solution to go around. User MindWorX suggested the atomic approach:
+
+    local leveldata data = CreateLevelData()
+    call SetLevelDataDuration(1.00)
+    call SetLevelDataDataA(RealData(10))
+    call SetLevelDataDataB(RealData(100))
+    call ApplyBuff(target, 'Ahea', data)
+
+
+Method 3
+
+    Implement structs and have Struct-based triggers to use.
+
+    local leveldata data = CreateAbility()
+    set leveldata.Duration = 1.00
+    set leveldata.DataA = RealData(10)
+    //etc...
+</code></pre>
+</body>
+</html>

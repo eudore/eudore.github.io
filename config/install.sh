@@ -1,0 +1,189 @@
+#!/bin/bash
+_install_nginx(){
+	id nginx || useradd nginx
+	groups nginx || groupadd -g nginx nginx
+	mkdir -pv /var/lib/nginx/tmp
+	yum -y install gcc gcc-c++ git wget automake pcre pcre-devel zlib-devel openssl openssl-devel
+	cd /tmp
+	wget -O nginx-ct.zip -c https://github.com/grahamedgecombe/nginx-ct/archive/v1.3.2.zip
+	unzip nginx-ct.zip
+	git clone -b tls1.3-draft-18 --single-branch https://github.com/openssl/openssl.git openssl
+	wget -P /tmp/ http://nginx.org/download/nginx-1.13.0.tar.gz
+	tar axf /tmp/nginx-1.13.0.tar.gz
+	#sed -i '/^#define NGINX_VERSION /s/1.8.0/1.0.0/g;/^#define NGINX_VER /s/nginx/wejass/g' /tmp/nginx-1.8.0/src/core/nginx.h
+	#sed -i '/^tatic char ngx_http_server_string/s/nginx/wejass/g' /tmp/nginx-1.8.0/src/http/ngx_http_header_filter_module.c
+	#sed -i '/^"<hr><center>nginx/s/nginx/wejass/g' /tmp/nginx-1.8.0/src/http/ngx_http_special_response.c
+	cd /tmp/nginx-1.13.0
+#	./configure --prefix=/usr/share/nginx --sbin-path=/usr/sbin/nginx --conf-path=/etc/nginx/nginx.conf --error-log-path=/var/log/nginx/error.log --http-log-path=/var/log/nginx/access.log --http-client-body-temp-path=/var/lib/nginx/tmp/client_body --http-proxy-temp-path=/var/lib/nginx/tmp/proxy --http-fastcgi-temp-path=/var/lib/nginx/tmp/fastcgi --http-uwsgi-temp-path=/var/lib/nginx/tmp/uwsgi --http-scgi-temp-path=/var/lib/nginx/tmp/scgi --pid-path=/run/nginx.pid --lock-path=/run/lock/subsys/nginx --user=nginx --group=nginx --with-file-aio --with-http_ssl_module --with-http_realip_module --with-http_addition_module --with-http_auth_request_module --with-http_sub_module --with-http_dav_module --with-http_flv_module --with-http_mp4_module --with-http_gunzip_module --with-http_gzip_static_module --with-http_random_index_module --with-http_secure_link_module --with-http_degradation_module --with-http_stub_status_module --with-mail_ssl_module --with-pcre --with-pcre-jit
+	./configure --prefix=/usr/share/nginx --sbin-path=/usr/sbin/nginx --conf-path=/etc/nginx/nginx.conf --error-log-path=/var/log/nginx/error.log --http-log-path=/var/log/nginx/access.log --http-client-body-temp-path=/var/lib/nginx/tmp/client_body --http-proxy-temp-path=/var/lib/nginx/tmp/proxy --http-fastcgi-temp-path=/var/lib/nginx/tmp/fastcgi --http-uwsgi-temp-path=/var/lib/nginx/tmp/uwsgi --http-scgi-temp-path=/var/lib/nginx/tmp/scgi --pid-path=/run/nginx.pid --lock-path=/run/lock/subsys/nginx --user=nginx --group=nginx --with-file-aio --with-openssl=../openssl --with-openssl-opt='enable-tls1_3' --with-http_ssl_module --with-http_v2_module --with-http_realip_module --with-http_addition_module --with-http_auth_request_module --with-http_sub_module --with-http_dav_module --with-http_flv_module --with-http_mp4_module --with-http_gunzip_module --with-http_gzip_static_module --with-http_random_index_module --with-http_secure_link_module --with-http_degradation_module --with-http_stub_status_module --with-mail_ssl_module --with-pcre --with-pcre-jit --add-module=../nginx-ct-1.3.2/ --add-module=../oauth-mem
+	make && make install
+}
+_install_zip(){
+	cd /tmp
+	wget http://www.nih.at/libzip/libzip-1.1.2.tar.xz
+	tar Jxvf libzip-1.1.2.tar.xz
+	cd libzip-1.1.2
+	mkdir -p /usr/local/libzip
+	./configure prefix=/usr/local/libzip/
+	make -j$CPU_NUM  && make install
+}
+_install_mutil(){
+	mkdir {data,run,logs,binlogs,relaylogs,dump}
+	chown -R mysql.mysql *
+	mysql_install_db --datadir=/data/war3xydb/data/ --user=mysql
+	ExecStart=/usr/bin/mysqld_safe --defaults-file=/data/war3xydb/my.cnf
+}
+_install_php(){
+	yum -y install libxml2 libxml2-devel openssl openssl-devel curl-devel libjpeg-devel libpng-devel freetype-devel libmcrypt-devel bison libzip libzip-devel
+	git clone https://github.com/php/php-src.git
+	./buildconf
+	./configure --prefix=/usr/local/php7 --exec-prefix=/usr/local/php7 --bindir=/usr/local/php7/bin --sbindir=/usr/local/php7/sbin --includedir=/usr/local/php7/include --libdir=/usr/local/php7/lib/php --mandir=/usr/local/php7/php/man --with-config-file-path=/usr/local/php7/etc --with-config-file-scan-dir=/usr/local/php7/etc/php.d --enable-mysqlnd --with-mysqli --with-pdo-mysql --enable-fpm --with-fpm-user=nginx --with-fpm-group=nginx --with-gd --with-iconv --with-zlib --enable-xml --enable-shmop --enable-sysvsem --enable-inline-optimization --enable-mbregex --enable-mbstring --enable-ftp --with-openssl --enable-pcntl --enable-sockets --with-xmlrpc --enable-zip --enable-soap --without-pear --with-gettext --enable-session --with-curl --with-jpeg-dir --with-freetype-dir --enable-opcache
+	make && make install
+}
+_install_mem(){
+	yum install -y gcc make
+	wget -P /tmp/ https://github.com/libevent/libevent/releases/download/release-2.1.8-stable/libevent-2.1.8-stable.tar.gz
+	tar axf /tmp/libevent-2.1.8-stable.tar.gz -C /tmp
+	cd /tmp/libevent-2.1.8-stable
+	./configure --prefix=/usr/local/libevent
+	make && make install
+	wget -P /tmp/ http://www.memcached.org/files/memcached-1.5.3.tar.gz
+	tar axf /tmp/memcached-1.5.3.tar.gz  -C /tmp/
+	cd /tmp/memcached-1.5.3
+	./configure --prefix=/usr/local/memcached --with-libevent=/usr/local/libevent/
+	make && make install
+	/usr/local/memcached/bin/memcached -u root -m 256 -U 0 -p 12001 -l 0.0.0.0 -d
+	/usr/local/memcached/bin/memcached -u root -m 256 -U 0 -p 12002 -l 0.0.0.0 -d
+}
+_install_ssl(){
+	if [ ! -f ~/.acme.sh/acme.sh ];then
+		yum install -y socat
+		cd /tmp
+		git clone https://github.com/Neilpang/acme.sh.git
+		cd acme.sh
+		./acme.sh --install
+	fi
+	if [ ! -f /tmp/ct-submit-1.1.2/ct-submit-1.1.2 ];then
+		cd /tmp
+		wget -O ct-submit.zip -c https://github.com/grahamedgecombe/ct-submit/archive/v1.1.2.zip
+		unzip ct-submit.zip
+		cd ct-submit-1.1.2
+		go build
+	fi
+	# first
+	# ~/.acme.sh/acme.sh --issue -w /data/web -d www.wejass.com -d wejass.com -d cdn.wejass.com
+	# ~/.acme.sh/acme.sh --issue -w /data/web -d www.wejass.com -d wejass.com -d cdn.wejass.com --keylength ec-256
+	# renew
+	~/.acme.sh/acme.sh --renew -d www.wejass.com -d wejass.com -d cdn.wejass.com --force
+	~/.acme.sh/acme.sh --renew -d www.wejass.com -d wejass.com -d cdn.wejass.com --force --ecc
+
+	cd ~/.acme.sh/www.wejass.com
+	cat fullchain.cer www.wejass.com.key > www.wejass.com.pem
+	/tmp/ct-submit-1.1.2/ct-submit-1.1.2 ct.googleapis.com/icarus <www.wejass.com.pem >www.wejass.com.sct
+	openssl x509 -in www.wejass.com.pem -noout -subject
+	openssl x509 -in www.wejass.com.pem -noout -pubkey | openssl asn1parse -noout -inform pem -out public.key
+	PKP1=`openssl dgst -sha256 -binary public.key | openssl enc -base64`
+	
+	cd ~/.acme.sh/www.wejass.com_ecc
+	cat fullchain.cer www.wejass.com.key > www.wejass.com.pem
+	/tmp/ct-submit-1.1.2/ct-submit-1.1.2 ct.googleapis.com/icarus <www.wejass.com.pem >www.wejass.com.sct
+	openssl x509 -in www.wejass.com.pem -noout -subject
+	openssl x509 -in www.wejass.com.pem -noout -pubkey | openssl asn1parse -noout -inform pem -out public.key
+	PKP2=`openssl dgst -sha256 -binary public.key | openssl enc -base64`
+ 
+	cp -rf ~/.acme.sh/www.wejass.com* /etc/nginx/openssl/
+	cd /etc/nginx/openssl/
+	cp -rf www.wejass.com/ca.cer public/
+	cp -rf www.wejass.com_ecc/www.wejass.com.sct ct/
+	cp -rf www.wejass.com_ecc/www.wejass.com.sct ct/www.wejass.com_ecc.sct
+	cd public
+	openssl dhparam -out dhparam.pem 4096
+	openssl rand 48 > tls_session_ticket.key
+ 	systemctl force-reload nginx
+#	openssl ciphers -V 'EECDH+ECDSA+AES128:EECDH+aRSA+AES128' | column -t
+#	curl -s https://www.wejass.com/css/slick-login.css | openssl dgst -sha256 -binary | openssl enc -base64 -A
+}
+_install_go(){
+	yum install -y golang
+	go get -u github.com/pangudashu/memcache
+	go get -u github.com/go-sql-driver/mysql
+	sed -i '/clientLocalFiles/a\\t\tclientMultiStatements |' /root/go/src/github.com/go-sql-driver/mysql/packets.go
+	sed -i '/clientMultiStatements/a\\t\tclientMultiResults |' /root/go/src/github.com/go-sql-driver/mysql/packets.go
+}
+_install_python(){
+	yum install -y gcc-c++
+	cd /tmp
+	wget https://www.python.org/ftp/python/2.7.5/Python-2.7.5.tar.bz2
+	tar axf Python-2.7.5.tar.bz2
+	./configure 
+	make && make install
+}
+_install_devel(){
+	yum install -y git python-devel hsh
+	cd /tmp
+	git clone git://github.com/webpy/webpy.git
+	git clone https://github.com/aliyun/aliyun-oss-python-sdk.git 
+	cd /tmp/aliyun-oss-python-sdk/
+	python  setup.py install
+	cd /tmp/webpy/
+	python setup.py install
+	pip install -U crcmod
+}
+_install_server(){
+	echo "set ts=4">> /etc/vimrc
+	yum install -y gcc golang mariadb-devel libmemcached libmemcached-devel
+	yum install -y mariadb mariadb-server  
+	yum install -y uwsgi uwsgi-plugin-python mysql-connector-python pyOpenSSL
+	cp -rf /data/web/config/nginx.conf /etc/nginx/
+	cp -rf /data/web/config/uwsgi.ini /etc/
+	tar xzvf /data/web/config/wejass-SSL.tar.gz -C /etc/nginx
+	systemctl start nginx
+	systemctl start uwsgi
+	systemctl start mongod
+	chkconfig nginx on
+	chkconfig uwsgi on
+	chkconfig mongod on
+}
+_install_es(){
+	mkdir -pv /usr/local/kencery/elasticsearch
+	cd /usr/local/kencery/elasticsearch
+	yum install -y git wget
+	wget https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-5.6.3.tar.gz
+	git clone git://github.com/mobz/elasticsearch-head.git
+	git clone git://github.com/medcl/elasticsearch-analysis-ik.git
+	tar axf elasticsearch-5.6.3.tar.gz 
+	groupadd elasticsearch
+	useradd  elasticsearch -g elasticsearch
+	chown -R elasticsearch:elasticsearch /usr/local/kencery/elasticsearch/elasticsearch-5.6.3
+	su elasticsearch -c "/usr/local/kencery/elasticsearch/elasticsearch-5.6.3/bin/elasticsearch -d"
+}
+_install_gitser(){	
+	groupadd git;
+	useradd git -g git -s /sbin/nologin 
+	yum install -y git curl-devel expat-devel gettext-devel openssl-devel zlib-devel perl-devel
+	
+	cd /home/git/
+	mkdir .ssh
+	chmod 755 .ssh
+	touch .ssh/authorized_keys
+	chmod 644 .ssh/authorized_keys
+	
+	cd /home
+	mkdir gitrepo
+	chown git:git gitrepo/
+	cd gitrepo
+	git init --bare runoob.git
+	git clone git@45.32.51.137:/home/gitrepo/runoob.git
+}
+_install_docker(){
+	docker pull mariadb
+	docker pull memcached
+	docker run --name memcached -p 12001:11211 -d memcached memcached -m 64
+	docker run --name mysql -d --rm -p 3306:3306 -v /data/docker/mariadb:/var/lib/mysql -e MYSQL_ROOT_PASSWORD=TPG4ppk4rlncL3lO  mariadb
+}
+_main(){
+	set -e
+	_install_devel
+	_install_nginx
+	_install_webpy
+}

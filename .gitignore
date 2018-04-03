@@ -1,0 +1,10 @@
+*.pyc
+sftp-config.json
+/config/note.txt
+/config/nginx/openssl-*
+/golang/index
+/golang/src/index
+/python/tasks.txt
+/download/
+/upload/
+/logs/

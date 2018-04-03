@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+	<meta charset="utf-8">
+	<meta name="author" content="Webdesigntuts+">
+    <meta name="viewport" content="width=device-width,user-scalable=no">
+	<link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
+	<script src='/high/prism.js'  async></script>
+	<link href='/high/prism.css' integrity='sha512-WJPDzOqZaUM5PdyNroFk4uZQYDrP78l1uY5s9WzOj2WFC5Ic6/czl3QNVoNxndedifOAFM8jDnCC//kH0sLH6g==' rel="stylesheet">
+    <link href="/css/base.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+	<header></header>
+	<div class="container repository-content">
+		<div class="note">
+			<div class="note-header">
+				<div class="note-actions"></div>
+				<div class="note-info">
+					<span>作者:</span>
+					<span>时间:{{.Edittime}}</span>
+				</div>
+			</div>
+			<div class="note-content">
+{{.Content}}
+			</div>
+		</div>
+	</div>
+	<footer></footer>
+</body>
+</html>

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="description" content="slick Login">
+    <meta name="author" content="Webdesigntuts+">
+    <meta name="viewport" content="width=device-width,user-scalable=no">
+	<title></title>
+</head>
+<body>
+	<div id="show">
+		<input type="text" id="i">
+		<button onclick="tran(256)">256</button>
+		<button onclick="tran(16)">16</button>
+		<button onclick="tran(10)">10</button>
+		<p id="o10"></p>
+		<p id="o16"></p>
+		<p id="o256"></p>
+	</div>
+	<script type="text/javascript">
+        "use strict";
+		function setInt(str,n){
+			if(2<=n && n <=32){
+				return parseInt(str,n)
+			}
+			else{
+				var v=0
+				for(var i of str){
+					v= (v<<8) + i.charCodeAt();
+				}
+				return v
+			}
+		}
+		function getInt(str,n){
+			if(2<=n && n <=32){
+				return str.toString(n)
+			}
+			else{
+				var v=""
+				while(str>0){
+					v=String.fromCharCode(str & 0xff)+v
+					str=str>>8
+				}
+				return v
+			}
+		}
+		function tran(n){
+			var v=setInt(document.getElementById('i').value,n)
+			document.getElementById('o256').innerText=getInt(v,256)
+			document.getElementById('o16').innerText=getInt(v,16)
+			document.getElementById('o10').innerText=v
+		}
+		function getQueryVariable(variable) {
+			var query = window.location.search.substring(1);
+			var vars = query.split("&");
+			for (var i=0;i<vars.length;i++) {
+				var pair = vars[i].split("=");
+				if(pair[0] == variable){return pair[1];}
+			}
+			return(false);
+		}
+		var value=getQueryVariable("value")
+		if(value){
+			var get=getQueryVariable("get") || 10
+			var to=getQueryVariable("to") || 10
+			document.write(getInt(setInt(value,get),to))
+			document.getElementById('show').style.display="none"
+		}
+	</script>
+</body>
+</html>

@@ -1,0 +1,918 @@
+/*
+
+    //新特性
+    
+        库 & 范围
+        http://www.wc3c.net/vexorian/jasshelpermanual.html#lib
+    
+        全局块
+        能够直接在代码中声明全局变量。 这极大地方便了新系统的安装，而不需要单独的“变量创建者”触发器。
+        http://www.wc3c.net/vexorian/jasshelpermanual.html#gdf
+
+        结构
+        http://www.wc3c.net/vexorian/jasshelpermanual.html#stru
+    
+        二维数组
+        http://www.wc3c.net/vexorian/jasshelpermanual.html#twodarray
+
+
+    //新本地函数
+
+        在运行时动态更改字段：以下只是一个通常请求的列表
+        地图制作者喜欢通过触发器访问的属性：
+        - 获取并设置一个单位的技能/物品冷却时间
+        - 获取并设置攻击伤害，护甲，攻击范围，攻击速度，攻击索引，后摇等。
+        - 在运行时获取和设置对象编辑器字段，例如 一个单位的模型，一个单位的攻击抛射物，
+            设置工具提示对于单位/能力/物品，设置图标等.
+        - 立即设置一个单位的面向，俯仰和横滚（设置一个单位的面临目前有转弯速度延迟）
+        - 更好地控制单位的图像
+        - 设定一个单位的最大生命值和法力值点数++
+        - 获得单位的伤害类型
+        - 'Attack released event' - 这是一次在发布攻击时释放的事件，即释放的抛射物
+
+        下面提供了一些示例，但按照重要性排列，'getters'在'setters'之前。
+        （例如：GetUnitGoldCost（）更重要的是SetUnitGoldCost（），虽然两者在很多情况下都会有很大的帮助）
+
+*/
+
+//修复
+native GetWidgetLife takes widget w returns real
+//真实不准确？ 细节缺乏.
+native EnableOcclusion takes boolean flag returns nothing
+//可能是指一般遮挡物被破坏？ 细节缺乏。
+native TriggerRegisterUnitStateEvent takes trigger whichTrigger, unit whichUnit, unitstate whichState,
+    limitop opcode, real limitval returns events
+//等于坏了？ 细节缺乏。
+native AddUnitToStock takes unit whichUnit, integer unitId, integer currentStock, integer stockMax returns nothing
+//添加的单位的主要工具提示将始终忽略颜色标签，以便文本始终显示为白色。 应该像所有单位工具提示一样解析颜色标签。
+/*
+    每次调用这个函数时，小地图都会以一种错误的方式进行修改：
+    单位的位置和战争迷雾被修改，以适应新的相机绑定，但不是地形，也不是可破坏的。
+    根据当前相机的旋转，小地图被压缩（垂直）。 旋转90°时，不会压缩。 随着227.40的旋转，小地图被完全压缩。 
+    在227.5和312.6之间，游戏崩溃。
+    此外，相机边界也将根据当前相机的旋转进行调整。 创建的相机边界将是一个矩形，通过给定的4个点，其两边将与相机平行。
+*/
+native SetCameraBounds takes real x1, real y1, real x2, real y2, real x3, real y3, real x4, real y4 returns nothing
+
+/*
+    销毁所有绑定的触发对象。
+    目前它只销毁所有绑定事件，触发条件和触发器本身，除非明确销毁，否则所有触发对象都会泄漏。
+    同时从该触发器中销毁所有当前计划的触发线程。
+    目前使用预定的触发线程销毁触发器可能会导致处理堆栈损坏，这很有可能导致Warcraft III崩溃。
+*/
+native DestroyTrigger takes trigger whichTrigger returns nothing
+
+function SmartCameraPanBJ takes player whichPlayer,location loc,real duration returns nothing
+//这个BJ功能目前不是安全的. 详细解释: https://www.hiveworkshop.com/threads/fixing-smartcamerapanbj-desync.243334/
+
+constant native GetEventDamage takes nothing returns real
+//通过一个不完美的魔法盾回复生命伤害的数量。 目前只有返回0或负值，即使该单位通过盾牌造成生命伤害。
+
+//修改建议
+native SetUnitState takes unit whichUnit,unitstate whichUnitState,real newVal returns nothing
+//增加支持修改生命值和法力值的最大值和恢复值。 目前只支持修改当前的生命值。
+native DisplayTimedTextToPlayer takes player toPlayer, real x, real y, real duration, string message returns nothing
+//对其进行更改，以便向具有唯一x和y的播放器显示文本不会移动任何其他消息。
+
+//新常量
+constant destructableevent DESTRUCTIBLE_DEATH
+//触发当可破坏的死亡。 我把它放在这里来标准化可破坏事件的工作方式。
+//+ 可破坏物事件 - 可破坏物死亡
+constant destructableevent DESTRUCTIBLE_COMBAT
+//当可破坏物品受到战斗来源的伤害时触发。 忽略树木采伐。
+//+ 可破坏物事件 - 可破坏物受到战斗伤害
+constant destructableevent DESTRUCTIBLE_HARVESTED
+//当可破坏物体受到树木采集能力的伤害时触发。 忽略战斗伤害。
+//+ 可破坏物事件 - 可破坏物受到采集伤害
+constant destructableevent DESTRUCTIBLE_DAMAGED
+//当可破坏物体受到任何伤害时触发。
+//+ 可破坏物事件 - 可破坏物受到任意伤害
+
+constant minimapevent PING
+//在小地图上触发
+//+ 小地图事件 - 发送信号
+constant minimapevent MINIMAP_BUTTON_PRESSED
+//当其中一个关联的小地图按钮被按下时触发。
+//+ 小地图事件 - 小地图按钮按下
+
+constant mouseevent MOUSE_CLICK
+//触发任何鼠标点击。 条件决定了哪个鼠标按钮（例如，左键单击，右键单击，侧单击（又名鼠标4，鼠标5）等）
+//+ 鼠标事件 - 鼠标点击
+constant mouseevent MOUSE_RELEASE
+//当鼠标点击被释放时触发。 同样的条件决定了什么按钮被释放。
+//+ 鼠标事件 - 鼠标释放
+constant mouseevent MOUSE_MOVE
+//当鼠标开始移动时触发。
+//+ 鼠标事件 - 鼠标移动
+constant mouseevent MOUSE_WHEEL_ANY
+//当鼠标滚轮向上或向下滚动时需要安装鼠标
+//+ 鼠标事件 - 鼠标滑动
+constant mouseevent MOUSE_WHEEL_UP
+//当鼠标滚轮向上滚动时触发
+//+ 鼠标事件 - 鼠标向上滑动
+constant mouseevent MOUSE_WHEEL_DOWN
+//当鼠标滚轮向下滚动时触发
+//+ 鼠标事件 - 鼠标向下滑动
+
+constant unitstate UNIT_STATE_LIFE_REGEN
+//单位当前生命恢复。 与GetUnitState和SetUnitState兼容。
+//+ 单位状态 - 单位生命恢复
+constant unitstate UNIT_STATE_MANA_REGEN
+//单位当前法力恢复。 与GetUnitState和SetUnitState兼容。
+//+ 单位状态 - 单位魔法恢复
+
+constant playerevent EVENT_PLAYER_ABILITY_PRESSED
+//当玩家按下能力按钮并开始瞄准时，该事件触发。 需要播放器的netsync，因此不是即时的。 
+//大部分法术事件本地函数，如触发单位和法术能力ID，都会响应此事件。
+//+ 玩家事件 - 玩家释放技能事件
+
+constant unitevent EVENT_UNIT_DAMAGE_POINT
+//和上面一样，不过是一个unitevent。
+//+ 单位事件 - 单位伤害抛射物事件
+constant unitevent EVENT_UNIT_MOVES
+//单位移动时射击。
+//+ 单位事件 - 单位移动事件
+constant unitevent EVENT_UNIT_IDLES
+//与空闲时屏幕左下角显示工作人员图标类似，此事件可检测任何设备何时闲置。
+//+ 单位事件 - 单位空闲农民事件
+constant unitevent EVENT_UNIT_ENTERS_COMBAT
+//它在锡上说的话 - 这个事件在一个单位进入战斗时触发。 例如，对于战斗再生中的/退出有用。
+//+ 单位事件 - 单位进入战斗事件
+constant unitevent EVENT_UNIT_EXITS_COMBAT
+//它在锡上说的话 - 这个事件在一个单位离开战斗时发射。 例如，对于战斗再生中的/退出有用。
+//+ 单位事件 - 单位离开战斗事件
+constant unitevent EVENT_UNIT_EVADE
+//当一个单位使用逃避技能逃避攻击时，该事件触发（逃避，醉酒争吵等）。
+//+ 单位事件 - 单位闪避事件
+constant unitevent EVENT_UNIT_REMOVED
+//该事件触发该单位从游戏中移除之前的瞬间。 单位通过各种来源如触发器，衰减或合并从游戏中移除。
+//+ 单位事件 - 单位移除事件
+constant unitevent EVENT_UNIT_RESOURCE_RETURN
+//事件触发时，单位返回资源，如收集。
+//+ 单位事件 - 单位返回资源事件
+constant unitevent EVENT_UNIT_RESOURCE_HARVEST
+//当单位收获资源时触发事件。 这个事件意味着单位携带的金额已经改变。
+//+ 单位事件 - 单位收集资源事件
+
+constant playerunitevent EVENT_PLAYER_UNIT_DAMAGE_POINT
+//当一个单位的攻击被释放时会触发 - 当一个近战单位击中目标或远程单位发射导弹时
+//+ 单位玩家事件 - 玩家单位伤害抛射物事件
+constant playerunitevent EVENT_PLAYER_UNIT_DAMAGED
+//与EVENT_UNIT_DAMAGED相同，除了作为玩家单位事件。
+//+ 单位玩家事件 - 玩家单位伤害事件
+constant playerunitevent EVENT_PLAYER_UNIT_EVADE
+//与EVENT_UNIT_EVADE相同，除了作为玩家单位事件。
+//+ 单位玩家事件 - 玩家单位闪避事件
+constant playerunitevent EVENT_PLAYER_UNIT_REMOVED
+//与EVENT_UNIT_REMOVED相同，除了作为玩家单位事件。
+//+ 单位玩家事件 - 玩家单位移除事件
+constant playerunitevent EVENT_PLAYER_UNIT_RESOURCE_RETURN
+//与EVENT_UNIT_RESOURCE_RETURN相同，除了作为玩家单位事件。
+//+ 单位玩家事件 - 玩家单位返回资源事件
+constant playerunitevent EVENT_PLAYER_UNIT_RESOURCE_HARVEST
+//与EVENT_UNIT_RESOURCE_HARVEST相同，除了作为玩家单位事件。
+//+ 单位玩家事件 - 玩家单位收集资源事件
+
+//+由下面的本地函数使用
+//+ 单位移动类型
+constant movementtype MOVEMENT_TYPE_NONE
+constant movementtype MOVEMENT_TYPE_FOOT
+constant movementtype MOVEMENT_TYPE_HORSE
+constant movementtype MOVEMENT_TYPE_FLY
+constant movementtype MOVEMENT_TYPE_HOVER
+constant movementtype MOVEMENT_TYPE_FLOAT
+constant movementtype MOVEMENT_TYPE_AMPHIBIOUS
+
+//+ 单位护甲的各种类型
+constant armortype ARMOR_TYPE_SMALL
+constant armortype ARMOR_TYPE_MEDIUM
+constant armortype ARMOR_TYPE_LARGE
+constant armortype ARMOR_TYPE_FORTIFIED
+constant armortype ARMOR_TYPE_NORMAL
+constant armortype ARMOR_TYPE_HERO
+constant armortype ARMOR_TYPE_DIVINE
+constant armortype ARMOR_TYPE_UNARMORED
+constant armortype ARMOR_TYPE_UNKNOWN
+//无效的装甲类型。 已经在游戏中随机观察到，可能是因为对装甲类型字段非致命的内存损坏错误的结果。
+
+//+ 英雄力敏智
+constant herostat HERO_STAT_STR
+constant herostat HERO_STAT_AGI
+constant herostat HERO_STAT_INT
+
+//+ 鼠标 左右滑轮
+constant mousebutton MOUSE_BUTTON_LEFT
+constant mousebutton MOUSE_BUTTON_RIGHT
+constant mousebutton MOUSE_BUTTON_MIDDLE
+
+//+ 物品七分类
+constant catalog CATALOG_UNIT
+constant catalog CATALOG_ITEM
+constant catalog CATALOG_ABILITY
+constant catalog CATALOG_BUFF
+constant catalog CATALOG_UPGRADE
+constant catalog CATALOG_DOODAD
+constant catalog CATALOG_DESTRUCTABLE
+
+//+ 资源黄金木材
+constant resourcetype RESOURCE_GOLD
+constant resourcetype RESOURCE_LUMBER
+
+//地面
+function GetWaterZ takes real x, real y returns real
+//由于当前GetLocationZ（）忽略水位，因此返回水位（浅水或深水）。
+//+ 获取水平高度
+function GetCliffZ takes real x, real y returns real
+//与此相关https://www.hiveworkshop.com/threads/calculating-a-flying-units-flyheight.270925/
+//+ 获取悬崖高度
+
+//魔法特效
+function AddSpecialEffectEffect takes string modelName, effect targetEffect, string attachPointName returns effect
+//创建一个附加到另一个特殊效果的特殊效果。
+//+ 魔法特效添加特效
+function SetSpecialEffectEffect takes effect fx, effect targetEffect, string attachPointName returns nothing
+//将特殊效果移至目标特殊效果。
+//+ 设置魔法特效的特效
+
+function SetSpecialEffectX takes effect fx, real x returns nothing
+//移动魔法效果到地图x/y/z轴。
+function SetSpecialEffectY takes effect fx, real y returns nothing
+function SetSpecialEffectZ takes effect fx, real z returns nothing
+function SetSpecialEffectLoc takes effect fx, location where returns nothing
+//移动魔法效果到指定位置。
+function SetSpecialEffectTarget takes effect fx, widget targetWidget, string attachPointName returns nothing
+//移动魔法效果到目标。
+
+function GetLocalSpecialEffectX takes effect fx returns real
+//返回效果所在位置的地图相对x/y/z坐标。 目标效应不是净安全的。
+function GetLocalSpecialEffectY takes effect fx returns real
+function GetLocalSpecialEffectZ takes effect fx returns real
+
+function SetSpecialEffectScale takes effect fx, real x, real y, real z returns nothing
+//按照缩放可破坏的程度的方式缩放特殊效果。
+function SetSpecialEffectRoll takes effect fx, real angle returns nothing
+//设置魔法效果的滚动角度。
+function SetSpecialEffectPitch takes effect fx, real angle returns nothing
+//设置魔法效果的俯仰角。
+function SetSpecialEffectFacing takes effect fx, real angle returns nothing
+//设置魔法效果的XY朝向角度。
+function SetSpecialEffectColor takes effect fx, playercolor color returns nothing
+//改变魔法效果使用的玩家颜色。
+
+//单位函数
+/*
+    有用的单位功能列表。 有些人经常被要求。
+*/                       
+function GetUnitIconPath takes unit u returns string
+//返回单元的图标路径。
+//+ 获取单位图标路径
+function GetUnitTypeIconPath takes integer unitId returns string
+//返回单位类型的图标路径。
+//+ 获取单位类型图标路径
+function SetUnitIconPath takes unit u, string path returns nothing
+//更改单元的图标路径。
+//+ 设置单位图标路径
+
+function GetUnitModelPath takes unit u returns string
+//返回单位的模型路径。
+//+ 获取单位模型路径
+function GetUnitTypeModelPath takes integer unitId returns string
+//返回单位类型的模型路径。
+//+ 获取单位类型模型路径
+function SetUnitModelPath takes unit u, string path returns nothing
+//更改单位的模型路径。
+//+ 设置单位模型路径
+
+function SetUnitName takes unit u, string name returns nothing
+//将单位的单位类型名称更改为指定的字符串。
+//+ 设置 单位名称
+function SetHeroName takes unit u, string name returns nothing
+//将英雄单位的英雄名称更改为指定的名称。 对非英雄单位不起作用。
+//+ 设置英雄名称
+function SetUnitLevel takes unit u, integer newLevel returns nothing
+//将非英雄单位的单位等级设置为指定等级。 对英雄无所适从。
+//+ 设置单位等级
+
+function SetUnitMaxSpeed takes unit u, real r returns nothing
+//最大和最小单位速度甚至做什么？ 如果是这样，修改这些的能力将受到欢迎。 单位可以像星际2那样加速和减速。
+//+ 设置单位最大移动速度
+function GetUnitMaxSpeed takes unit u, nothing returns real
+//+ 获取单位最大移动速度
+function SetUnitMinSpeed takes unit u, real r returns nothing
+//+ 设置单位最小移动速度
+function GetUnitMinSpeed takes unit u, nothing returns real
+//+ 获取单位最小移动速度
+
+function GetUnitAttackTime takes unit u, integer index returns real
+//返回单位特定攻击索引（0或1）的冷却时间，攻击速度修改器（例如：急速手套，跛子）包含在内。
+//+ 获取单位攻击间隔
+function SetUnitAttackTime takes unit u, integer index, real amount returns nothing
+//设置一个单位的特定攻击索引的基础冷却时间，适当地应用所有的攻击速度修改器。
+//+ 设置单位攻击间隔
+function ModifyUnitAttackTime takes unit u, integer index, real fraction returns nothing
+//将分数攻击速度修改器应用于单位的特定攻击索引，与其他攻击速度修改器（包括限制）一样对待。
+//+ 修改单位攻击间隔
+function GetUnitAttackDamageMin takes unit u, integer index returns integer
+//返回一个单位特定攻击索引的最小攻击伤害，并带有伤害修正值（例如：命令光环，攻击之爪+16）。
+//+ 获取单位攻击最小值
+function GetUnitAttackDamageMax takes unit u, integer index returns integer
+//返回一个单位特定攻击索引的最大攻击伤害，并带有伤害修正因素。
+//+ 获取单位攻击最大值
+function SetUnitAttackDamageMin takes unit u, integer index, integer min returns nothing
+//将一个单位的特定攻击索引的基础最小攻击伤害改变为一个确切值，重新使用所有伤害修正值作为适当值。 将包含升级的奖励。
+//+ 设置单位攻击最小值
+function SetUnitAttackDamageMax takes unit u, integer index, integer max returns nothing
+//将一个单位的特定攻击索引的基础最大攻击伤害改变为一个确切值，并重新应用所有伤害修正值。 将包含升级的奖励。
+//+ 设置单位攻击最大值
+function ModifyUnitAttackDamage takes unit u, integer index, integer amount returns nothing
+//将伤害修改器应用于单位的特定攻击索引，与其他伤害修正器一样对待。
+//+ 修改单位攻击
+
+function SetUnitMovementType takes unit u, movementtype movementType returns nothing
+//将单位的移动类型更改为指定的移动类型。
+//+ 设置单位移动类型
+function GetUnitMovementType takes unit u returns movementtype
+//获取单位的移动类型。
+//+ 获取单位移动类型
+
+function SetUnitVisionType takes unit u, boolean flying
+//将单位的视觉机制改变为地面（可以被地形遮挡）或飞行（绝对）。
+//+ 设置单位版本类型
+
+function SetItemStock takes unit u, integer itemId, integer stock returns nothing
+//将商店中商品ID的库存设置为指定的编号。 最大库存数量是受到保护的，如果完全冷却进度将会丢失。
+//+ 设置物品库存
+function SetItemStockMax takes unit u, integer itemId, integer stock returns nothing
+//将商店中商品ID允许的最大库存设置为指定的数量。 最大库存数量是受到保护的，如果低于当前库存冷却和库存物品将会丢失。
+//+ 设置物品最大库存
+function GetItemStock takes unit u, integer itemId returns integer 
+//在商店中获取物品ID的库存。
+//+ 获取物品库存
+function GetItemStockMax takes unit u, integer itemId returns integer
+//获取商店中物品ID允许的最大库存量。
+//+ 获取物品最大库存
+
+function GetLocalUnitZ takes unit u returns real
+//获取单位原点的精确地图相对z坐标。 这是游戏世界中单位的视觉高度。 不是净安全的。
+//+ 获取单位本地Z轴高度
+function GetUnitCollisionSize takes unit returns real
+//设置单位的碰撞大小。 碰撞大小限制中的返回值因子可能小于对象编辑器中的值。
+//+ 获取单位碰撞体积
+function SetUnitFacingInstant takes unit u, real facingAngle returns nothing
+//与SetUnitFacing类似，但角度变化是即时的，转向率和方向插值被忽略。 角度以度为单位。
+//+ 设置单位面相瞬间角度
+function SetUnitFacingInstantRad takes unit u, real facingAngle returns nothing
+////与SetUnitFacingInstant相同，但角度以弧度表示。
+function SetUnitFacingRad takes unit whichUnit, real facingAngle returns nothing
+//与SetUnitFacing相同，但角度以弧度表示。
+
+function GetUnitAttackCooldownRemaining takes unit u returns real
+//返回当前发生攻击冷却的游戏秒数中的剩余时间。 如果攻击不在冷却时间内，则返回0.0。
+//+ 获取单位攻击剩余间隔
+function SetUnitAttackCooldown takes unit u, real duration returns nothing
+//将当前的攻击冷却时间设置为不同的值，可能会覆盖/忽略后退点。 设置为零以使下一次攻击立即发生。 可以开始攻击冷却。
+//+ 设置单位攻击间隔
+
+function UnitAttackTarget takes unit whichUnit, widget target, real amount, attacktype attackType, 
+    damagetype damageType, weapontype weaponType returns boolean
+//与UnitDamageTarget类似，但是对于源的攻击修饰符如Orb Effects，Critical Strike，Bash，Lifesteal等也是如此。
+//+ 单位攻击目标
+function UnitAttackArea takes unit whichUnit, real radius, real x, real y, real amount, attacktype attackType, 
+    damagetype damageType, weapontype weaponType, boolexpr filterFunc returns boolean
+//就像UnitAttackTarget（）一样，但是最后需要一个boolexpr参数来过滤不需要的受害者。 这对于使用bash等机会修饰符的区域攻击很有帮助。
+//+ 单位伤害范围
+                                                                                             
+
+function UnitInterruptAttack takes unit u returns nothing
+//停止当前发生的攻击并触发针对预期攻击索引的攻击冷却。 
+//呼叫仅在后退时间或触发单元响应EVENT_UNIT_ATTACKED和EVENT_PLAYER_UNIT_ATTACKED事件时有效。
+//+ 单位打断攻击
+function GetUnitArmorType takes unit u returns armortype
+//返回单位的护甲类型。
+//+ 获取单位护甲类型
+function SetUnitArmorType takes unit u, armortype armorType returns nothing
+//设置单位的护甲类型。
+//+ 设置单位护甲类型
+function GetUnitArmor takes unit u, boolean includeBonuses returns real
+//返回一个单位的护甲值。 如果includeBonuses为true，则包含所有护甲值（例如：专注光环，精灵之火）。
+//+ 获取单位护甲
+function SetUnitArmor takes unit u, real amount returns nothing
+//改变一个单位的基础护甲值，适当的时候使用所有护甲修正值。
+//+ 设置单位护甲
+function ModifyUnitArmor takes unit u, real amount returns nothing
+//将器应用于修改一个单位护甲，被视为与所有其他护甲属性相同。                           
+//+ 修改单位护甲
+
+function UnitDisableMovement takes unit u, boolean flag returns nothing
+////打开或关闭单元的移动。 目前使用SetUnitPropWindow设置为零是可行的，
+//但恢复需要弧度，但GetUnitDefaultPropWindow返回度数。 不是一个大问题，但它是隐藏的信息。
+//+ 设置单位是否可移动
+function UnitDisableTurning    takes unit u, boolean flag returns nothing
+//切换单位打开或关闭的施法能力。
+//+ 设置单位是否可施法
+function UnitDisableControl takes unit u boolean flag returns nothing
+//切换单位是否响应命令的开启或关闭。 仍然可以响应触发命令。
+//+ 设置单位是否可控制
+function UnitFullDisable takes unit u, boolean flag returns nothing
+//切换单位是否响应ANY命令的开启或关闭。 类似于被震惊，但不会'ununun'，直到UnitFullDisable被设置为false。
+//+ 设置单位是否响应命令
+function UnitDisableAttack takes unit u, boolean flag returns nothing
+//关闭两个攻击索引中的一个。 目前通过向装置增加货舱保持能力是可行的，但它禁用了这两个指数。
+//+ 设置单位是否可攻击
+function UnitDisableSelection takes unit u, boolean flag returns nothing
+//同样给一个单位（Aloc）提供蝗虫能力，但是可以启用/禁用而不会产生任何错误的副作用。
+//+ 设置单位是否可选择
+
+function IsUnitSelectable takes unit u returns boolean
+//对于是否可以选择单元返回true或false。 例如在具有蝗虫能力的单位（Aloc）上会返回错误。
+//+ 单位是否可选中
+function IsUnitInvulnerable takes unit u returns boolean
+//返回一个单位是否无敌
+//+ 单位是否无敌
+
+function UnitCancelTimedLife takes unit u returns nothing
+//取消先前使用的UnitApplyTimedLife或召唤单位的自动到期计时器。
+//+ 单位取消生命周期
+function UnitApplyTimer takes unit u, integer buffId, real timeout returns timer
+//将一个非致命定时器应用于显示时间滴答下来的单位，就像使用阿凡达或变形术这样的咒语。 
+//当计时器到期时，TimerRegisterExpireEvent触发。
+//+ 单位附加计时器
+function UnitDisableItems takes unit u, boolean flag, boolean passive returns nothing
+//切换单位是否可以使用物品。 物品被动效果可以选择打开或关闭。
+//+ 切换单位是否可用物品
+
+function GetLocalTargetAttachmentX takes widget who, string attachmentname returns real
+//获取指定附件站点的地图相对x/y/z坐标。 不是净安全的。
+//+ 获取本地目标附加X轴坐标
+function GetLocalTargetAttachmentY takes widget who, string attachmentname returns real
+//+ 获取本地目标附加Y轴坐标
+function GetLocalTargetAttachmentZ takes widget who, string attachmentname returns real
+//+ 获取本地目标附加Z轴高度
+
+function UnitHideAbility takes unit u, integer abilityId, boolean flag returns nothing
+//显示或隐藏本机的能力命令卡按钮。 不会禁用本身的能力。
+//+ 单位是否隐藏技能图标
+function UnitDisableAbility takes unit u, integer abilityId, boolean flag returns nothing
+//启用或禁用单位技能。 也会禁用被动。
+//+ 单位是否禁用技能
+
+function GetUnitAbilityCooldownTimeout takes unit u, integer abilityId returns real
+//如果单位使用它，则返回一个技能的冷却时间。
+//+ 获取单位技能冷却时间
+function GetUnitAbilityCooldownRemaining takes unit u, integer abilityId returns real
+//返回单位上技能的剩余冷却时间。
+//+ 获取单位技能剩余冷却时间
+function SetUnitAbilityCooldown takes unit u, integer abilityId, real timeout, real remaining returns nothing
+////修改单位当前技能的冷却进度。 由于合乎逻辑的原因超时将被限制。 设置超时或保持为零立即完成冷却。
+//+ 设置单位技能冷却时间
+function GetUnitAbilityManaCost takes unit u, integer abilityId returns integer
+//返回单位技能的消耗法术力费用。
+//+ 获取单位技能魔法需求
+function IsUnitAbilityOnCooldown takes unit u, integer abilityId returns boolean
+//如果某单位的技能冷却时间，则返回true。
+//+ 单位技能是否冷却
+
+function UnitChangeUnitId takes unit u, integer unitid returns nothing
+//更改单元的单元类型ID。 除了不需要能力之外，结果与单位变形能力相同。
+//+ 修改单位类型
+function ReviveUnit takes unit u returns nothing
+//在尸体的位置复活一个死亡单位。 在机械上与圣骑士的复活能力相同。
+//复活单位
+
+function GroupEnumCorpsesInRange takes group g, real x, real y, real radius, boolexpr filter returns nothing
+//方便功能枚举一个位置范围内的所有尸体。
+//+ 单位组选取区域战斗的匹配单位                                                                                             
+function GroupEnumCorpsesInRangeloc takes group g, location whichLocation, real radius, boolexpr filter returns nothing
+//与上面相同，但带有位置参数。
+//+ 单位组选取区域战斗的匹配单位                                                                                             
+
+function GetUnitGoldCost takes integer unitid returns integer
+//AI本地复制到正常JASS的说服。
+//+ 获取单位需求黄金
+function GetUnitWoodCost takes integer unitid returns integer
+//AI本地复制到正常JASS的说服。
+//+ 获取单位需求木材
+
+function IsUnitMoving takes unit u returns boolean
+//如果一个单位试图移动，则返回true。 如果它正在等待探路者参与它，该单元可能实际上并没有移动。
+//+ 单位是否可移动
+function IsUnitIdle takes unit u returns boolean
+//如果一个单位没有移动，没有攻击，没有投射并且没有使用物品，则返回true。
+//+ 单位是否空闲
+function IsUnitInCombat takes unit u returns boolean
+//如果一个单位最近受到攻击或被攻击，则返回true。 可能与攻击机制下的力量联系在一起？
+//+ 单位是否战斗
+
+function GetAbilityManaCost takes integer abilityId, integer level returns integer
+//返回一个技能的魔法需求。
+//+ 获取技能魔法需求
+function SetAbilityManaCost takes integer abilityId, integer level, integer newcost returns integer
+//+ 设置技能魔法需求
+function GetAbilityCooldown takes integer abilityId, integer level returns real
+//返回一个技能的冷却时间。
+//+ 获取技能冷却时间
+function SetAbilityCooldown takes integer abilityId, integer level, integer newcool returns integer
+//+ 设置技能冷却时间
+
+/*
+    注意：异能是全局缓存的参考，所以原因是独立于单位的本地修改会在全局范围内改变该能力。 
+    虽然这是一个很好的工具，但具有修改它们的能力会更好。
+    然而，这可能会提高游戏本身的性能成本，因为游戏中的每个单位都会拥有自己的个人版本的能力。
+*/
+function GetUnitAbilityManaCost takes unit u, integer abilityId, integer level returns integer
+//+ 获取单位技能魔法需求
+function SetUnitAbilityManaCost takes unit u, integer abilityId, integer level, integer newcost returns integer
+//+ 设置单位技能魔法需求
+function GetUnitAbilityCooldown takes unit u, integer abilityId, integer level returns real
+//+ 获取单位技能冷却时间
+function SetUnitAbilityCooldown takes unit u, integer abilityId, integer level, integer newcool returns integer
+//+ 设置单位技能冷却时间
+
+function GetHeroPrimaryStat takes unit u returns herostat
+//返回设置为主要属性的类型。 例如，如果单位是圣骑士，它会返回力量的ID。
+//+ 获取单位主要信息
+function GetHeroPrimaryStatById takes integer unitid returns herostat
+//与上面相同，但引用对象编辑器值而不是实际单位。
+//+ 获取单位类型主要信息
+function SetHeroPrimaryStat takes unit u, herostat stat returns integer
+//允许游戏单独修改英雄的哪个属性成为它的主要属性。 必须重新应用来自主要英雄属性的伤害修正。
+//+ 设置单位主要信息
+function GetHeroStat takes herostat whichStat, unit whichHero, boolean includeBonuses returns integer
+//机制与GetHeroStatBJ函数相同，除了采用新的本地herostat常量。
+//+ 获取英雄信息
+function SetHeroStatEx takes unit whichHero, herostat whichStat, integer value, boolean permanent returns nothing
+//机械上类似于SetHeroStat函数，除了采用新的本地herostat常量并且可以设置永久性。
+//+ 设置英雄信息
+
+function GetBuilderUnit takes unit building returns unit
+//返回构建建筑物/单位的单位。 在建筑物的情况下，这应该是将基础转换为单元的单元。
+//+ 获取建造单位
+function GetUnitBuildProgress takes unit u returns real
+//返回正在进行的建筑物/单元的分数（百分比/ 100）完成。 如果单位没有进展（已建成）则返回1.0。
+//+ 获取单位建造进度
+function SetUnitBuildProgress takes unit u, real fraction returns nothing
+//修改正在进行的建筑物/单位的分数完成。 1.0的一小部分会使装置立即完成。 对完成的单位不做任何事情。
+//+ 设置单位建造进度
+function GetUnitTrainProgress takes unit factory returns real
+//返回正在训练的单位的分数完成。 如果没有单位正在训练，则返回1.0。
+//+ 获取单位升级进度
+function SetUnitTrainProgress takes unit factory, real fraction returns nothing
+//修改当前正在训练的单元的分数完成。 1.0的一小部分使得该装置立即受到训练。 对没有训练任何东西的工厂什么都不做。
+//+ 设置单位升级进度
+function GetTrainingQueueSize takes unit factory returns integer
+//返回排队的训练队列的数量。
+//+ 获取单位训练队列数量
+function GetMaxTrainingQueueSize takes unit factory returns integer
+//返回单位允许的排队训练队列的最大数量。
+//+ 设置单位最大训练队列数量
+function CancelTraining takes unit factory, integer slot returns boolean
+//从由插槽编号确定的建筑物的训练队列中取消列车顺序（例如0 - 6）。 如果单位被实际取消，则返回true。
+//+ 取消训练
+function ClearTrainingQueue takes unit factory returns boolean
+//等同于在建筑物的所有占用训练位置上调用取消训练。 如果至少有1个训练命令被取消，则返回true。
+//+ 清除训练队列
+
+function GetItemAbilityCooldownRemaining takes item whichItem returns real
+//返回使用物品上剩余的冷却时间。
+//+ 获取物品技能剩余冷却时间
+function GetItemAbilityCooldownTimeoutById takes integer itemId returns real
+//返回项目类型的默认超时冷却时间。
+//+ 获取单位类型技能物品冷却时间
+function SetItemAbilityCooldown takes item whichItem, real timeout, real remaining returns real
+//将项目的剩余冷却时间设置为特定值。 设置超时或保持为零立即完成冷却
+//出于逻辑原因，超时将被限制为剩余，并且可能会被无人使用的项目忽略。 
+//+ 设置物品技能冷却时间
+function EnableItem takes item whichItem, boolean flag returns nothing
+//启用/禁用一个物品。 禁用的物品不提供属性，也不能使用。
+//+ 物品是否可用
+
+function GetUnitBuildTime takes integer unitid returns integer
+// AI本地移植到标准JASS。
+//+ 获取单位建造时间
+function GetHeroBuildTime takes integer unitid, player whichPlayer returns integer
+//返回玩家制作指定英雄类型的训练时间，以秒为单位。 近战中的顺序英雄增加列车时间的因素。
+//+ 获取英雄建造时间
+function GetHeroReviveTime takes unit whichUnit returns integer
+//以秒为单位返回玩家恢复指定英雄死亡时的复活时间。
+//+ 获取英雄复活时间
+
+//伤害事件扩展
+function GetEventDamageAttackType takes nothing returns attacktype
+//对于伤害事件的回应会返回伤害的攻击类型（法术，英雄，混沌等）。
+//+ 伤害事件 - 获取攻击类型
+function GetEventDamageDamageType takes nothing returns damagetype
+//对于伤害事件的回应会返回伤害类型（未知，魔法，正常，增强等）。
+//+ 伤害事件 - 获取伤害类型
+function GetEventDamageAbilityId takes nothing returns integer
+//对于伤害事件的回应返回造成伤害的能力ID。 该能力可以是一个伤害法术（烈焰之击，风暴之箭等）或攻击修正能力（冷箭，火球等）。
+//普通攻击伤害会返回一些安全的默认值，比如0。
+//+ 伤害事件 - 获取伤害技能类型
+function GetEventDamageUnmodified takes nothing returns real
+//对任何伤害事件作出回应会在任何修改（护甲，攻击类型减少等）被应用之前返回单位造成的伤害。
+//+ 伤害事件 - 获取原始伤害值
+function GetEventDamageMana takes nothing returns real
+//为了回应一个伤害事件，返回由于一个有效的法力盾而失去的法力值。
+//+ 伤害事件 - 获取魔法消耗值
+
+//资源事件扩展
+function GetEventResourceType takes nothing returns resourcetype
+//事件响应的资源类型。 例如当一缕装置聚集木材时，举例为RESOURCE_LUMBER。
+//+ 资源事件 - 获取资源类型
+function GetEventResourceAmount takes nothing returns integer
+//事件响应的资源量。 例如，当一个闹鬼的金矿提取10金时。
+//+ 资源事件 - 获取资源数量
+
+//UI函数
+function ShowUI takes boolean flag returns nothing
+                                           //True/false参数会显示/隐藏UI。 这包括禁用屏幕顶部和底部的黑色边框。
+//+ 是否显示UI
+function ShowManaBar takes boolean flag returns nothing
+//打开或关闭单位上的法术力棒显示。 它们是否显示取决于玩家的游戏玩法选项，但这可以覆盖会话的相关内容。
+//+ 是否显示蓝条
+function SetPlayerHPBarColor takes player p, real red, real green, real blue returns nothing
+//更改属于特定玩家的单位的血条颜色。
+//+ 设置玩家血条颜色
+function SetPlayerMPBarColor takes player p, real red, real green, real blue returns nothing
+//改变属于特定玩家的单位的蓝条颜色。
+//+ 设置玩家蓝条颜色
+function CreateBar takes real red, real green, real blue, real alpha returns bar
+//'新'对象类型。 创建一个条（如单位上方的血条），并根据使用的值为它们着色。 例如重新创造神族盾牌。
+//+ 创建条（血条、护盾条、施法进度条之类东西）
+function AttachBarTarget takes bar whichBar, widget target, real z returns nothing
+//将一个条附加到一个单位，可破坏物，物品等与选项上下移动z轴。
+//+ 绑定条目标
+function GetBarX takes bar whichBar returns real
+//返回一个条的x/y/z坐标。
+//+ 设置条X轴坐标
+function GetBarY takes bar whichBar returns real
+//+ 设置条Y轴坐标
+function GetBarZ takes bar whichBar returns real
+//+ 设置条Z轴高度
+function SetBarPos takes bar, real x, real y, real heightOffset returns nothing
+//手动重新组合条形图来映射相对坐标，如浮动文本。
+//+ 设置条位置
+function DisplayScreenMessage takes string s, real x, real y, real timeout returns nothing
+//这将显示一段时间内的文字信息，但与屏幕的标准化X / Y值有关。 可以重叠其他文字信息。 无效超时将根据消息长度自动计算超时。
+//+ 显示屏幕消息
+function GetLocalDisplayResolutionHorizontal takes nothing returns real
+//返回用于显示本地客户端的Warcraft III的水平分辨率。 不是安全的。
+//+ 获取本地玩家水平分辨率
+function GetLocalDisplayResolutionVertical takes nothing returns real
+//返回用于为本地客户端显示Warcraft III的像素的垂直分辨率。 不是安全的。
+//+ 获取本地玩家垂直分辨率
+
+//小地图功能
+function GetPingX takes ping whichPing returns real
+//返回信号的对应地图相对x/y坐标。
+//+ 获取信号X轴坐标
+function GetPingY takes ping whichPing returns real
+//+ 获取信号Y轴坐标
+function TriggerRegisterPlayerPingEvent takes trigger whichTrigger, player whichPlayer returns event
+//当指定玩家发送信号时触发触发器的新事件。 此事件对GetTriggerPlayer和GetTriggerPing都有效。
+//+ 触发注册玩家发送信号事件
+function GetTriggerPing takes nothing returns ping
+//响应玩家信号事件返回触发事件的信号对象。
+//+ 获取触发信号
+
+//鼠标响应函数
+function GetLocalCursorTargetX takes nothing returns real
+//返回本地客户端游标定位的地图相对x/y/z坐标。 如果光标未定位到地图上的任何内容，则返回0.不是安全的。
+//+ 获取本地光标目标X轴坐标
+function GetLocalCursorTargetY takes nothing returns real
+//+ 获取本地光标目标Y轴坐标
+function GetLocalCursorTargetZ takes nothing returns real
+//+ 获取本地光标目标Z轴高度
+function SetLocalCursorX takes real x returns nothing
+//将本地客户端光标位置设置为指定的屏幕空间标准化的x/y坐标。
+//+ 设置本地光标X轴坐标
+function SetLocalCursorY takes real y returns nothing
+//+ 设置本地光标Y轴坐标
+function IsLocalCursorOverUI takes nothing returns boolean
+//如果光标当前没有定位到地图，则返回true。 不是安全的。
+function IsLocalMouseButtonPressed takes mousebutton mouseButton returns boolean
+//根据鼠标按钮被按下，返回true或false。 对于点击和拖拽功能会很有用。 不是安全的。
+function TriggerRegisterPlayerMouseEvent takes whichTrigger, player whichPlayer, mouseevent mouseEvent returns event
+//鼠标点击/拖动/释放事件。 所有鼠标事件都在这里。 见常量。 附加此事件会引起播放器周期性的鼠标同步。
+//+ 触发注册玩家鼠标事件
+function GetTriggerMouseEvent takes nothing returns mouseevent
+//响应播放器鼠标事件返回哪个mouseevent触发了触发器。
+//+ 鼠标事件 - 获取鼠标事件
+function GetTriggerMouseX takes nothing returns real
+//响应播放器鼠标事件返回屏幕空间标准化x坐标事件发生在。 是安全的。
+//+ 鼠标事件 - 获取鼠标X轴坐标
+function GetTriggerMouseY takes nothing returns real
+//响应播放器鼠标事件返回屏幕空间标准化y坐标事件发生在。 是安全的。
+//+ 鼠标事件 - 获取鼠标Y轴坐标
+function GetTriggerMouseMapX takes nothing returns real
+//响应播放器鼠标事件返回地图相对x/y/z坐标事件发生在。 仅当鼠标事件针对地图时才返回非0.0值。 是安全的。
+//+ 鼠标事件 - 获取鼠标相对地图X轴坐标
+function GetTriggerMouseMapY takes nothing returns real
+//+ 鼠标事件 - 获取鼠标相对地图Y轴坐标
+function GetTriggerMouseMapZ takes nothing returns real
+//+ 鼠标事件 - 获取鼠标相对地图Z轴高度
+
+//键盘
+function TriggerRegisterPlayerKeyboardEvent takes trigger whichTrigger, player whichPlayer, keyboardbutton hotkey,
+    boolean state returns event
+//当播放器按下相应的按键时触发。 键盘按钮常量没有提到，但应该覆盖大多数常见的键盘按钮。 
+//如果状态为真，则按下按键时触发，否则在释放按键时触发。 附加此事件会导致播放器的键盘按钮同步流量。
+//+ 触发注册顽皮键盘事件                                                                                             
+function GetTriggerKeyboardButton takes nothing returns keyboardbutton
+//响应播放器键盘事件返回哪个按钮导致事件。
+//+ 键盘事件 - 获取按键
+function GetTriggerKeyboardState takes nothing returns boolean
+//响应玩家键盘事件返回导致事件的状态。 如果按下则为真，如果释放则为false。
+//+ 键盘事件 - 获取按键状态
+
+function GetLocalKeyboardButtonState takes keyboardbutton whichButton returns boolean
+//如果本地客户端具有指定的键盘按钮（例如箭头键），则返回true，如果释放，则返回false。 不是净安全的。
+//+ 键盘事件 - 获取本地按键状态
+
+//可破坏物
+function IsDestructableTree takes destructable d returns boolean
+//如果可破坏树可以用作树，则返回true。 否则为false。
+function TriggerRegisterDestructibleEvent takes trigger whichTrigger, destructable d, destructableevent whichEvent returns event
+//像TriggerRegisterUnitEvent一样。 列出了一些重要的事件常量，但其他事件也可能存在。
+function TriggerRegisterAnyDestructibleEvent takes trigger whichTrigger, destructableevent whichEvent returns event
+//与TriggerRegisterDestructibleEvent类似，除了适用于地图上的所有可破坏对象，甚至还有待创建的对象。
+
+//可追踪物
+function SetTrackablePos takes trackable t, real x, real y returns nothing
+//将可跟踪的轨迹移动到指定的地图相对坐标。
+function SetTrackableZ takes trackable t, real z returns nothing
+//设置可跟踪的地图相对z坐标。 这会禁用自动Z位置。
+function SetTrackableZOffset takes trackable t, real zOffset returns nothing
+//设置可跟踪的Z偏移量。 这与它自动定位在的Z相对。 这使Z自动定位成为可能。
+function GetTrackableX takes trackable t returns real
+//返回可跟踪的地图相对x/y/z坐标。
+function GetTrackableY takes trackable t returns real
+function GetTrackableZ takes trackable t returns real
+function DestroyTrackable takes trackable t returns nothing
+//可追踪物目前不能通过触发器销毁，因此需要使用本地代码才能有用。
+
+//视距
+function SetUbersplatPos takes ubersplat u, real x, real y returns nothing
+//将视距移动到新的地图相对坐标。
+function SetUbersplatScale takes ubersplat u, real x, real y returns nothing
+//允许视距的变形。 在旋转之前，它会以默认方向应用于ubersplat。
+function SetUbersplatFacing takes ubersplat u, real angle returns nothing
+//允许一个视距旋转。 用于危险标记或击中标记。 角度以度为单位。
+function SetUbersplatFacingRad takes ubersplat u, real angle returns nothing
+//与SetUbersplatFacing相同，但角度以弧度表示。
+
+//触发
+function EvaluateBoolexpr takes boolexpr func returns boolean
+//在一次调用中评估一个boolexpr的简单函数。 目前，必须将其作为条件绑定到触发器，评估触发器，然后在评估之后销毁触发器。 
+//boolexpr的执行方式应与当前的触发方式相似。
+//+ 执行布尔表达式
+
+//Benchmarking
+/*
+    无论谁提出这些建议都没有解释他们的目的或他们的意图。
+    我猜测他们是用来衡量各种脚本性能的客户端本地性能计数器。
+    如果是这种情况，那么在多人游戏中对这些进行的所有调用应该返回不执行任何操作的默认安全值。
+*/
+function CreateStopWatch takes nothing returns stopwatch
+//创建一个演出计数器秒表。
+function StopWatchStart takes stopwatch returns nothing
+//开始秒表，使其记录时间进度。 如果已暂停，则恢复录制。
+function GetStopWatchTime takes stopwatch returns real
+//暂停秒表并获取当前流逝的秒表停留时间，这是剩余运行时间的总和。
+function StopWatchEnd takes stopwatch returns nothing
+//销毁秒表，释放它使用的所有资源。
+function StopWatchPause takes stopwatch returns nothing
+//暂停秒表，导致其停止录制时间进度。 如果要准确测量一段脚本的执行时间，应该在游戏帧之间调用该脚本以防止测量游戏循环时间的秒表。
+
+//调试
+function DisplayErrorMsg takes string s, real duration returns nothing
+//在错误消息区域中显示给定的错误消息字符串。 该消息也写出到错误日志文件中。
+//+ 显示错误消息
+
+function GetOPLimit takes nothing returns integer
+//获取当前剩余的JASS线程操作限制。 由于JASS虚拟机的工作原理，返回的值可能会大于实际的限制，因为它可以被处理。
+function SetOPLimit takes integer newlimit returns nothing
+//将当前的JASS线程操作限制更改为指定的值。 由于JASS虚拟机的工作原理，在函数返回时，实际的限制可能会稍微小于指定的数量。
+//使用本机时必须小心，因为它否定了操作限制提供的无限循环保护。
+function ResetOPLimit takes nothing returns nothing
+//将当前的JASS线程操作限制重置为该线程的默认操作限制，就像它刚刚创建一样。
+//由于JASS虚拟机的工作原理，实际的限制可能会比函数返回时的默认值小。 使用本机时必须小心，因为它否定了操作限制提供的无限循环保护。
+
+type func extends code
+//用于调试本机的功能类型。 可能有特殊的语法要求来防止code利用。
+function TriggerRegisterJassOpLimitEvent takes trigger whichTrigger returns event
+//由于线程达到其操作限制，事件响应JASS虚拟机线程崩溃而触发。 用于检测线程崩溃的时间。
+//+ 触发注册jass字节码限制事件
+function TriggerRegisterJassDivideByZeroEvent takes trigger whichTrigger returns event
+//响应JASS虚拟机线程崩溃而引发事件，因为尝试除以0.有用于检测线程崩溃发生的时间。
+//+ 触发支持jass除数为零事件
+function TriggerRegisterJassNoBlockEvent takes trigger whichTrigger returns event
+//由于尝试阻止不允许阻塞（例如，条件函数中的TriggerSleepAction）而导致JASS虚拟机线程崩溃，事件触发。 用于检测线程崩溃的时间。
+//+ 触发支持jass线程崩溃事件
+
+function GetTriggerFunction takes nothing returns func
+//响应所有JASS线程崩溃事件返回崩溃发生的函数。
+//+ jass事件 - 获取触发函数
+function GetEventJassError takes nothing returns string
+//为了响应所有JASS线程崩溃事件，尽可能多地返回一个人类可读的字符串和尽可能多的关于崩溃的信息。
+// 打算打印出来或记录下来帮助地图制作者追踪线索坠毁发生的地点/原因。
+//+ jass事件 - 获取错误
+function GetHandleIdCount takes nothing returns integer
+//返回当前分配的句柄ID的数量。 如果观察到这个数字随着游戏的进行而增加，那么可能会有各种对象泄漏。
+//+ jass事件 - 获取句柄数量
+function GetHandleIdFreeCount takes nothing returns integer
+//返回空闲句柄ID堆栈上的句柄ID的数量。 如果这个数字非常大，那么随着时间的推移地图数量会减少，或者有一个步骤需要创建和销毁大量的对象。
+//+ jass事件 - 获取剩余句柄数量
+
+//对话框
+function IsPlayerInDialog takes player p returns boolean
+//如果玩家当前有任何可见的对话框，则返回true。 可能需要网络同步。
+//+ 玩家是否在选择对话框
+
+//对象编辑API
+/*
+    只读对象编辑器API。 与星际争霸II目录原生类似，因此命名。
+    字段字符串将是对象编辑器中的属性键，即用于单位基本健康再生的“regenHP”。
+    传递一个无效的键（或者会返回一个不正确的数据类型的函数）会返回一些合理的默认值（0,0.0，null等）。
+*/
+function GetUnitTypeAttributeInteger takes catalog whichCatalog, integer typeId, string field returns integer
+//+ 获取单位类型整数属性（三函数读取任意单位类型物编数据）
+function GetUnitTypeAttributeReal takes catalog whichCatalog, integer typeId, string field returns real
+//+ 获取单位类型实数属性
+function GetUnitTypeAttributeString takes catalog whichCatalog, integer typeId, string field returns string
+//+ 获取单位类型字符串属性
+
+//Custom UI
+/*
+    有人建议能够自定义UI，类似于星际II，可以在客户端屏幕上的任何位置放置自定义UI元素。
+    但他们并没有建议使用API来做到这一点。
+    由于这样一个API的复杂性，我建议看看星际争霸II的实现，它可以让用户界面更加自定义。
+*/
+
+//笔记
+/*
+    这个建议添加列表意味着简化现有流程或完全改变它们。
+*/
+
+//马甲
+/*
+
+    马甲本质上是单位 - 准确的说是假的单位，性能较差。他们没有碰撞，没有模型（尽管你可能会附加一些东西给他们的“本体”），无法移动，
+    什么都没有。他们只能通过触发器（SetUnitX / Y）移动，并且不需要魔法需求，科技要求，冷却时间，都可以施放法术。
+    他们也可以施放无限制的法术，无需任何冷却时间，因此每个地图或每个玩家可能只需要1个马甲。
+    马甲单位的一个关键方面是他们所采取的所有行动都被授模板单位，这样，如果马甲单位使用法术杀死一个单位，游戏将注册源单位，
+    从而获得该杀死。 根据来源的属性将决定一个目标是否可以被法术命中（例如：如果源是代理目标的盟友，马甲不能在目标上施放风暴号角）。
+
+    NB：马甲类型受大多数相关单元触发器影响，如SetUnitX / Y和RemoveUnit。它可以添加到单位组等。
+*/
+function CreateAbilityProxy takes unit source, real x, real y, real z returns proxy
+//这实质上是一个虚拟的东西，它所需要的所有动作都会被记入源头。
+//+ 创建技能马甲
+function SetProxySource takes proxy dummy, unit source returns nothing
+//修改代理的来源。
+//+ 马甲绑定源单位（用于修改伤害来源、凶手单位等其他触发源单位）
+
+//使用魔法特效
+/*
+    这种方法试图改变模特们将法术应用于目标的方式。 而不是使用马甲，如果咒语及其相应的效果可以直接施放，那该怎么办？
+    一个目标单位/点？我们认为这可能发生的方式有很多种，但最终取决于那些知道如何以最佳方式执行此操作的源代码人员。
+*/
+
+方法 1
+
+    ApplySpellEffect理念看起来像法术可以随时随地施放。 然而，这里有光环的问题，
+    这意味着这些本地函数可能应该返回除布尔值之外的其他东西（也许是spelleffect类型？）
+
+    function ApplySpellEffect takes player owner, real x, real y, integer abilcode returns nothing
+    ////对于只影响施法者的法术返回false（例如Storm Crow Form）
+    function ApplySpellEffectTarget takes player owner, unit target, integer abilcode returns boolean
+    //如果目标无效，则返回null（例如，魔法免疫，无敌等）
+    function ApplySpellEffectPoint takes player owner, real xcast, real ycast, real zcast, 
+        real xtarget, real ytarget, integer abilcode returns boolean
+    //在无法指定的环境下返回false（例如水上地狱，没有树木的自然力量）
+    function ApplySpellEffectChanneled takes player owner, real x, real y, real timeout, integer abilcode returns boolean
+    //在计时器过期后//结束。 超时覆盖咒语的内部持续时间。
+    function ApplySpellEffectTargetChanneled takes player owner, unit target, real timeout, integer abilcode returns boolean                       
+    function ApplySpellEffectPointChanneled takes player owner, real xcast, real ycast, real zcast,
+        real xtarget, real ytarget, real timeout, integer abilcode returns boolean
+
+
+方法 2
+
+    虽然上述方法可行，但我想这不是最优雅的解决方案。 用户MindWorX提出了原子方法：
+
+    local leveldata data = CreateLevelData()
+    call SetLevelDataDuration(1.00)
+    call SetLevelDataDataA(RealData(10))
+    call SetLevelDataDataB(RealData(100))
+    call ApplyBuff(target, 'Ahea', data)
+//+ 创建一个对象设置属性，最给目标添加buff，buff模板为'Aher',buff数据为新建数据
+
+方法 3
+
+    实现结构并使用基于结构的触发器来使用。
+
+    local leveldata data = CreateAbility()
+    set leveldata.Duration = 1.00
+    set leveldata.DataA = RealData(10)
+    //etc...
+//+ 创建一个技能对象，然后设置属性

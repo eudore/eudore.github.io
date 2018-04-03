@@ -1,0 +1,12 @@
+2018/04/01 21:53:23 INFO log_test.go:14: info---
+2018/04/01 21:53:23 DEBUG log_test.go:15: test DEBUG
+2018/04/01 21:53:23 INFO log_test.go:17: test INFO
+2018/04/01 21:53:23 INFO log_test.go:17: test INFO
+2018/04/01 21:53:23 INFO log_test.go:17: test INFO
+2018/04/01 21:53:23 WARNING log_test.go:19: test WARNING
+2018/04/01 22:18:15 INFO log_test.go:14: info---
+2018/04/01 22:18:15 DEBUG log_test.go:15: test DEBUG
+2018/04/01 22:18:15 INFO log_test.go:17: test INFO
+2018/04/01 22:18:15 INFO log_test.go:17: test INFO
+2018/04/01 22:18:15 INFO log_test.go:17: test INFO
+2018/04/01 22:18:15 WARNING log_test.go:19: test WARNING

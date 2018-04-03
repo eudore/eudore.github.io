@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+	<meta charset="utf-8">
+	<meta name="author" content="Webdesigntuts+">
+    <meta name="viewport" content="width=device-width,user-scalable=no">
+	<link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
+    <link href="/css/base.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+	<header>{{template "header"}}</header>
+	<div class="container">
+		<div class="proxy">
+			<table>
+				<thead>
+					<tr>
+						<th>全选</th>
+						<th>group</th>
+						<th>jobs</th>
+						<th>memo</th>
+						<th>操作</th>
+					</tr>
+				</thead>
+				<tbody id="tbody">
+{{range $k := .data}}
+{{$k.Html()}}
+{{end}}
+				</tbody>
+			</table>
+		</div>
+	</div>
+	<footer>{{template "footer"}}</footer>
+</body>
+</html>
