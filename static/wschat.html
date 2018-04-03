@@ -2,95 +2,145 @@
 <html lang="zh-CN">
 <head>
     <title></title>
-    <meta charset="utf-8">
-    <meta name="author" content="Webdesigntuts+">
-    <meta name="viewport" content="width=device-width,user-scalable=no">
-    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
-    <link href="/css/base.css" rel="stylesheet" type="text/css">
-    <style type="text/css">
-        #ulShow li {list-style:none; padding: 10px 15px; border: 1px solid #ddd;}
-        #txtUserName {width: 30%; margin-bottom: 15px;}
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <!-- 新 Bootstrap 核心 CSS 文件 -->
+    <link rel="stylesheet" href="//cdn.bootcss.com/bootstrap/3.3.5/css/bootstrap.min.css">
+    <script src="//cdn.bootcss.com/jquery/1.11.3/jquery.min.js"></script>
+    <!--        <script src="//cdn.bootcss.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>-->
 </head>
 <body>
     <div class="container">
-        <div>
-            内容：<br/>
-            <ul id="ulShow">
-            </ul>
+        <div>内容：</div>
+        <div class="list-group" id="divShow">
+            <!--<div class="list-group-item list-group-item-success">1111</div>
+            <div class="list-group-item list-group-item-info">1111</div>
+            <div class="list-group-item list-group-item-warning">1111</div>
+            <div class="list-group-item list-group-item-danger">1111</div>-->
+        </div>
+        <div class="list-group" id="divUsers">
+            在线：<br />
+            <!--<div class="btn btn-default">111</div>-->
+
         </div>
         <div>
-            昵称：<input id="txtUserName" value="红领巾" type="text" maxlength="20" style="" />
-            <textarea id="txtContent" autofocus rows="6" placeholder="想聊的内容" maxlength="200" required style="width: 100%; "></textarea>
-            <button id="btnSend" style="margin-top:15px">发 送</button>
+            昵称：<input class="form-control" id="txtUserName" value="红领巾" type="text" maxlength="20" style="width: 30%; margin-bottom: 15px" />
+            聊聊：<textarea class="form-control" id="txtContent" autofocus rows="6" placeholder="想聊的内容" maxlength="200" required style="width: 60%; "></textarea>
+            <button class="btn btn-default" id="btnSend" style="margin-top:15px">发 送</button>
         </div>
     </div>
 </body>
 </html>
 
 <script>
-    var wss = null
-    function showt(){
-        var oDate = new Date();
-        console.log(oDate.getHours()+':'+oDate.getMinutes()+':'+oDate.getSeconds())
-    }
-    function getWss(code){
-        if(wss==null){ 
-            var wsUrl = "wss://www.wejass.com/chat/";
-            wss = new WebSocket(wsUrl);
-            try {
-                wss.onopen = function () {
-                    console.log("服务器-连接")
-                    if(code){
-                        code()
-                    }
-                }
+    var tool = function () {
 
-                wss.onclose = function () {
-                    if (wss) {
-                        wss.close();
-                        wss = null;
-                    }
-                    console.log("服务器-关闭")
-                }
+        var paperLoopNum = 0;
+        var paperTempleArr = [
+            '<div class="list-group-item list-group-item-success">{0}</div>',
+            '<div class="list-group-item list-group-item-info">{0}</div>',
+            '<div class="list-group-item list-group-item-warning">{0}</div>',
+            '<div class="list-group-item list-group-item-danger">{0}</div>'
+        ];
 
-                wss.onmessage = function (result) {
-                    var data = JSON.parse(result.data);
-                    var show = document.getElementById("ulShow");
-                    for(var i of data["UserMsgs"]){
-                        console.log("【"+i["UserName"]+"】 : "+i["Msg"])
-                        var elem = document.createElement("li")
-                        elem.innerText = "【"+i["UserName"]+"】 : "+i["Msg"]
-                        show.appendChild(elem)
-                    }
+        return {
 
-                }
+            paperDiv: function (val) {
 
-                wss.onerror = function () {
-                    if (wss) {
-                        wss.close();
-                        wss = null;
-                    }
-                    console.log("服务器-错误")
+                var hl = paperTempleArr[paperLoopNum];
+                paperLoopNum++;
+                if (paperLoopNum >= paperTempleArr.length) { paperLoopNum = 0; }
+
+                return this.formart(hl, [val])
+            },
+            formart: function (str, arrVal) {
+
+                for (var i = 0; i < arrVal.length; i++) {
+                    str = str.replace("{" + i + "}", arrVal[i]);
                 }
-            } catch (e) {
-                alert(e.message);
+                return str;
             }
-        }else if(code){
-            code()
         }
     }
 
-    void function(){
-        var obj = document.getElementById("btnSend")
-        obj.addEventListener("click", function(){
-            var name = document.getElementById("txtUserName").value || "匿名"
-            var msg = document.getElementById("txtContent").value
-            msg && getWss(function(){
-                var request = JSON.stringify({"UserName":name, "DataType": "send", "Msg": msg})
-                wss.send(request);
-            })
-        })
-        getWss()
-    }();
+    function showMsg(id, hl, isAppend) {
+
+        if (!isAppend) { $("#" + id).html(hl); } else {
+            $("#" + id).append(hl);
+        }
+    }
+    $(function () {
+
+        //初始化工具方法
+        var tl = new tool();
+
+        var wsUrl = "wss://www.wejass.com/chat/wss";
+//        var wsUrl = "ws://47.52.173.119:8082/webSocket";
+        ws = new WebSocket(wsUrl);
+
+        try {
+
+            ws.onopen = function () {
+
+                //showMsg("divShow", tl.paperDiv("连接服务器-成功"));
+            }
+
+            ws.onclose = function () {
+                if (ws) {
+                    ws.close();
+                    ws = null;
+                }
+                showMsg("divShow", tl.paperDiv("连接服务器-关闭"), true);
+            }
+
+            ws.onmessage = function (result) {
+
+                //console.log(result.data);
+                var data = JSON.parse(result.data);
+                $(data.UserMsgs).each(function (i, item) {
+                    showMsg("divShow", tl.paperDiv("【" + item.UserName + "】：" + item.Msg), true);
+                });
+
+                var userDataShow = [];
+                $(data.UserDatas).each(function (i, item) {
+
+                    userDataShow.push('<div class="btn btn-default">' + item.UserName + '</div>');
+
+                });
+                showMsg("divUsers", userDataShow.join(''), false);
+            }
+
+            ws.onerror = function () {
+                if (ws) {
+                    ws.close();
+                    ws = null;
+                }
+                showMsg("divShow", tl.paperDiv("连接服务器-关闭"), true);
+            }
+
+        } catch (e) {
+
+            alert(e.message);
+        }
+        $("#btnSend").on("click", function () {
+
+            var tContentObj = $("#txtContent");
+            var tContent = $.trim( tContentObj.val()).replace("/[\n]/g", "");
+            var tUserName = $.trim( $("#txtUserName").val()); tUserName = tUserName.length <= 0 ? "匿名" : tUserName;
+            if (tContent.length <= 0 || $.trim(tContent).length <= 0) { alert("请输入发送内容!"); return; }
+            if (ws == null) { alert("连接失败，请F5刷新页面!"); return; }
+
+            var request = tl.formart('{"UserName": "{0}", "DataType": "{1}", "Msg": "{2}" }',
+                                     [tUserName, "send", tContent]);
+            ws.send(request);
+            tContentObj.val("");
+            tContentObj.val($.trim(tContentObj.val()).replace("/[\n]/g", ""));
+        });
+        $("#txtContent").on("keydown", function (event) {
+
+            if (event.keyCode == 13) {
+
+                $("#btnSend").trigger("click");
+            }
+        });
+    })
 </script>
