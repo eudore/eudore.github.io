@@ -11,42 +11,38 @@ import (
  
 type Config struct {
     Workdir     string      `comment:"Current working directory"`
+    Command     string
     Tempdir     string      `comment:"Template file dir"`
     Confile     string      `comment:"Config file path"`
     Pidfile     string      `comment:"Pid file path"`
     Logfile     string      `comment:"Log file path"`
+    IP          string      `comment:"Listen Ip Addr"`
     Port        int         `comment:"Server use port"`
     Dbconfig    string      `comment:"MariaDB connect info"`
     Memaddr     string      `comment:"Memcached connect addr and port"`
+    Const       map[string]*string
     Enable      []string
     Mode        map[string]interface{}
 }
 
-func (c *Config) isMode(m string) bool {
-    for _,v := range c.Enable {
-        if v==m {
-            return true
-        }
-    }
-    return false
-}
+var conf *Config
 
 func Instance() *Config {
     return conf
 }
 
-var conf *Config
-
 func init() {
     //set default config
     conf = &Config {
-        Workdir:    "/date/",
+        Workdir:    "/date/web",
         Tempdir:    "/date/web/template",
         Confile:    "/data/web/config/conf.json",
         Pidfile:    "/var/run/index.pid",
-        Logfile:    "/data/web/logs/index.log",
-        Port:       8090,
+        Logfile:    "/date/web/logs",
+        IP:         "",
+        Port:       8080,
         Dbconfig:   "root:@/Jass",
+        Memaddr:    "127.0.0.1:11211",
     }
     //init flag
     s := reflect.TypeOf(conf).Elem()
@@ -148,4 +144,32 @@ func init() {
         json.Unmarshal(b, &conf)
     }
     os.Chdir(conf.Workdir)  
+}
+
+
+
+func (c *Config) IsMode(m string) bool {
+    for _,v := range c.Enable {
+        if v==m {
+            return true
+        }
+    }
+    return false
+}
+
+func (c *Config) Getconst(k string) *string {
+    if v,ok := c.Const[k]; ok {
+        return v
+    }
+    return nil
+}
+
+
+
+func IsMode(m string) bool {
+    return conf.IsMode(m)
+}
+    
+func Getconst(k string) *string {
+    return conf.Getconst(k)
 }

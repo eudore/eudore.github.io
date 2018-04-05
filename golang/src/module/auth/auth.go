@@ -6,7 +6,7 @@ import (
 	"html/template"
 	"public/router"
 	"public/session"
-	"github.com/golang/glog"
+	"public/log"
 )  
 
 var globalSessions *session.Manager;
@@ -33,7 +33,7 @@ func init() {
 func auth(w http.ResponseWriter, r *http.Request) {
 	sess,_ := globalSessions.SessionStart(w, r)
 	defer sess.SessionRelease(w)
-	glog.Info("pro to: ",sess.Get("auth") )
+	log.Info("pro to: ",sess.Get("auth") )
 	tmp, err := template.ParseFiles("/data/web/templates/auth/auth.html","/data/web/templates/base.html")
 	if err == nil {	
 		var doc bytes.Buffer
