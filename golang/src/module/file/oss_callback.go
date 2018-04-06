@@ -9,6 +9,7 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
+    "encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -16,11 +17,14 @@ import (
 	"strconv"
 )
 
+type CallbackBody struct{
+	Filename 	string
+	Size 		int
+	MimeType 	string
+}
 
 func oss_callback(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
-		fmt.Println("\nHandle Post Request...")
-
 		// Get PublicKey bytes
 		bytePublicKey, err := getPublicKey(r)
 		if err != nil {
@@ -36,19 +40,20 @@ func oss_callback(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Get MD5 bytes from Newly Constructed Authrization String.
-		byteMD5, err := getMD5FromNewAuthString(r)
+		byteMD5, bodyContent, err := getMD5FromNewAuthString(r)
 		if err != nil {
 			responseFailed(w)
 			return
 		}
-
 		// VerifySignature and response to client
 		if verifySignature(bytePublicKey, byteMD5, byteAuthorization) {
 
 			// Do something you want accoding to callback_body ...
 
 			// response OK : 200
-			responseSuccess(w)
+			var body CallbackBody
+			json.Unmarshal(bodyContent, &body)
+			responseSuccess(w,&body)
 		} else {
 			// response FAILED : 400
 			responseFailed(w)
@@ -100,22 +105,21 @@ func getAuthorization(r *http.Request) ([]byte, error) {
 }
 
 // getMD5FromNewAuthString : Get MD5 bytes from Newly Constructed Authrization String.
-func getMD5FromNewAuthString(r *http.Request) ([]byte, error) {
+func getMD5FromNewAuthString(r *http.Request) ([]byte, []byte, error) {
 	var byteMD5 []byte
-
 	// Construct the New Auth String from URI+Query+Body
 	bodyContent, err := ioutil.ReadAll(r.Body)
 	r.Body.Close()
 	if err != nil {
 		fmt.Printf("Read Request Body failed : %s \n", err.Error())
-		return byteMD5, err
+		return byteMD5, bodyContent, err
 	}
 
 	strCallbackBody := string(bodyContent)
 	strURLPathDecode, errUnescape := unescapePath(r.URL.Path, encodePathSegment)
 	if errUnescape != nil {
 		fmt.Printf("url.PathUnescape failed : URL.Path=%s, error=%s \n", r.URL.Path, err.Error())
-		return byteMD5, errUnescape
+		return byteMD5, bodyContent, errUnescape
 	}
 
 	// Generate New Auth String prepare for MD5
@@ -131,7 +135,7 @@ func getMD5FromNewAuthString(r *http.Request) ([]byte, error) {
 	md5Ctx.Write([]byte(strAuth))
 	byteMD5 = md5Ctx.Sum(nil)
 
-	return byteMD5, nil
+	return byteMD5, bodyContent, nil
 }
 
 //  verifySignature
@@ -154,18 +158,18 @@ func verifySignature(bytePublicKey []byte, byteMd5 []byte, authorization []byte)
 		return false
 	}
 
-	fmt.Printf("Signature Verification is Successful. \n")
+	fmt.Println("Signature Verification is Successful.")
 	return true
 }
 
 // responseSuccess : Response 200 to client
-func responseSuccess(w http.ResponseWriter) {
-	strResponseBody := "{\"Status\":\"OK\"}"
+func responseSuccess(w http.ResponseWriter,body *CallbackBody) {
+	responseBody,_ := json.Marshal(map[string]interface{}{"status":"ok","URI":body.Filename})
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Content-Length", strconv.Itoa(len(strResponseBody)))
+	w.Header().Set("Content-Length", strconv.Itoa(len(responseBody)))
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(strResponseBody))
-	fmt.Printf("\nPost Response : 200 OK . \n")
+	w.Write(responseBody)
+	fmt.Println("Post Response : 200 OK . uri",body.Filename)
 }
 
 // responseFailed : Response 400 to client
