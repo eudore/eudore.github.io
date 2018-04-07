@@ -39,15 +39,15 @@ SELECT U.`UID`,U.`Name` UName,P.`PID`,P.`Name` PName,A.`Level`,P.`Info`,P.`EditT
 
 DROP TABLE IF EXISTS `tb_file_save`;
 CREATE TABLE IF NOT EXISTS `tb_file_save`(
-	`Hash` char(32) PRIMARY KEY,
-	`PHash` char(32),
+	`ID` INT UNSIGNED PRIMARY KEY,
+	`PID` INT UNSIGNED DEFAULT 0,
+	`Name` VARCHAR(100),
+	`Hash` char(32) UNIQUE,
 	`UID` int UNSIGNED DEFAULT 0,
-	`Uri` VARCHAR(100),
-	`Name` text,
 	`Sourc` INT UNSIGNED DEFAULT 0,
 	`Path` VARCHAR(100),
 	`Size` INT UNSIGNED DEFAULT 0,
-	`UpTime` TIMESTAMP(6)
+	`ModTime` TIMESTAMP(6)
 );
 
 DROP TABLE IF EXISTS `tb_note_save`;
