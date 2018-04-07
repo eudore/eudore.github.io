@@ -53,6 +53,9 @@ func test(w http.ResponseWriter, r *http.Request) {
 func main() {
 	//router
 	mux := router.Instance()
+	static := http.FileServer(http.Dir("/data/web/static"))
+	mux.Handle("/js/", static)
+	mux.Handle("/css/", static)
 	mux.HandleFunc("/go/", test);
 	mux.Handle("/",http.HandlerFunc(test));
 	//start

@@ -164,7 +164,7 @@ func verifySignature(bytePublicKey []byte, byteMd5 []byte, authorization []byte)
 
 // responseSuccess : Response 200 to client
 func responseSuccess(w http.ResponseWriter,body *CallbackBody) {
-	responseBody,_ := json.Marshal(map[string]interface{}{"status":"ok","URI":body.Filename})
+	responseBody,_ := json.Marshal(map[string]interface{}{"status":"ok","data":[1]string{body.Filename}})
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Content-Length", strconv.Itoa(len(responseBody)))
 	w.WriteHeader(http.StatusOK)

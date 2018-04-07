@@ -16,8 +16,9 @@ import (
 	"crypto/sha1"
 	"fmt"
 	"time"
+    "hash"
+    "strings"
 	"encoding/json"
-	"hash"
 	"encoding/base64"
 )
 
@@ -101,8 +102,13 @@ func get_policy_token() []byte {
 }
 
 func oss_policy(w http.ResponseWriter, r *http.Request) {
-	response := get_policy_token()
-	w.Header().Set("Access-Control-Allow-Methods", "POST")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Write(response)
+    if(true || strings.HasPrefix(r.Header.Get("Referer"),"https://www.wejass.com/file/")){
+        response := get_policy_token()    
+        w.Header().Set("Access-Control-Allow-Methods", "POST")
+        w.Header().Set("Access-Control-Allow-Origin", "*")
+        w.WriteHeader(http.StatusOK)
+        w.Write(response)
+    }else{
+        w.WriteHeader(http.StatusNotFound)                  
+    }
 }
