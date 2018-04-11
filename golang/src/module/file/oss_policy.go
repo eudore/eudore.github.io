@@ -101,6 +101,55 @@ func get_policy_token() []byte {
     return response
 }
 
+func Policy_token(calluri,dir string,len int) []byte {
+    now := time.Now().Unix()
+    expire_end := now + expire_time
+    var tokenExpire = get_gmt_iso8601(expire_end)
+
+    //create post policy json
+    var config ConfigStruct
+    config.Expiration = tokenExpire  
+    var condition []string
+    condition = append(condition, "eq")
+    condition = append(condition, "$key")
+    condition = append(condition, dir)
+    condition = append(condition, "content-length-range")
+    condition = append(condition, string(len))
+    condition = append(condition, string(len))
+    config.Conditions = append(config.Conditions, condition)
+
+    //calucate signature
+    result,err:=json.Marshal(config)
+    debyte := base64.StdEncoding.EncodeToString(result)
+    h := hmac.New(func() hash.Hash { return sha1.New() }, []byte(*conf_accessKeySecret))
+    io.WriteString(h, debyte)
+    signedStr := base64.StdEncoding.EncodeToString(h.Sum(nil))
+
+    var callbackParam CallbackParam
+    callbackParam.CallbackUrl = *conf_callback_domian + calluri
+    callbackParam.CallbackBody = callbackBody//"filename=${object}&size=${size}&mimeType=${mimeType}&height=${imageInfo.height}&width=${imageInfo.width}"
+    callbackParam.CallbackBodyType = callbackBodyType//"application/x-www-form-urlencoded"
+    callback_str,err:=json.Marshal(callbackParam)
+    if err != nil {
+        fmt.Println("callback json err:", err)
+    }
+    callbackBase64 := base64.StdEncoding.EncodeToString(callback_str)
+
+    var policyToken PolicyToken
+    policyToken.AccessKeyId = *conf_accessKeyId
+    policyToken.Host = *conf_host
+    policyToken.Expire = expire_end
+    policyToken.Signature = string(signedStr)
+    policyToken.Directory = dir
+    policyToken.Policy = string(debyte)
+    policyToken.Callback = string(callbackBase64)
+    response,err:=json.Marshal(policyToken)
+    if err != nil {
+        fmt.Println("json err:", err)
+    }
+    return response
+}
+
 func oss_policy(w http.ResponseWriter, r *http.Request) {
     if(true || strings.HasPrefix(r.Header.Get("Referer"),"https://www.wejass.com/file/")){
         response := get_policy_token()    

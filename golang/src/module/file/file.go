@@ -26,6 +26,7 @@ var (
     conf_accessKeySecret=   config.Getconst("file_oss_secret")
     conf_host           =   config.Getconst("file_oss_host")
     conf_upload_dir     =   config.Getconst("file_oss_upload")
+    conf_callback_domian=   config.Getconst("file_oss_callback_domain")
 )
 
 const (
@@ -42,7 +43,7 @@ func init() {
 	go globalSessions.GC()
 	mux := router.Instance()
     mux.GetFunc("/file/:user/:zone/*",local_list)
-    mux.PostFunc("/file/:user/:zone/*",file_split)
+    mux.PostFunc("/file/:user/:zone/*",file_up)
     mux.PutFunc("/file/:user/:zone/*",file_up)
     mux.GetFunc("/file/policy",oss_policy)
     mux.PostFunc("/file/call",oss_callback)

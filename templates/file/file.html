@@ -81,12 +81,25 @@
             }
 
         }
-
+        function testpost(){
+            var data = new FormData();
+            data.append("name","s")
+            fetch("http://47.52.173.119:8081/file/file?user=a",{method: 'POST',body: data}).then(
+                function(response) {
+                if (!response.ok) throw new Error(response.statusText)
+                return response.text()
+            }).then(function(obj){
+                console.log(obj)
+            }).catch(function(err) {
+                console.log(err)
+            })
+        }
     </script>
 </head>
 <body>
     <input id="upload" type='file' multiple />
     <button onclick="upload()">local提交</button>
+    <button onclick="testpost()">testpost</button>
     <button onclick="get_signature()">oss policy</button>
     <button onclick="ossupload()">oss提交</button>
     <table>
