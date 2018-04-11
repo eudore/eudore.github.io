@@ -157,6 +157,20 @@ _install_es(){
 	chown -R elasticsearch:elasticsearch /usr/local/kencery/elasticsearch/elasticsearch-5.6.3
 	su elasticsearch -c "/usr/local/kencery/elasticsearch/elasticsearch-5.6.3/bin/elasticsearch -d"
 }
+_install_git(){
+	# git --version && yum remove -y git 
+	yum --version && yum install -y wget gcc curl-devel expat-devel gettext-devel openssl-devel zlib-devel perl-ExtUtils-MakeMaker
+	apt --version && apt-get install -y wget gcc libcurl4-gnutls-dev libexpat1-dev gettext libz-dev libssl-dev perl-ExtUtils-MakeMaker
+	wget https://www.kernel.org/pub/software/scm/git/git-2.7.2.tar.gz
+	tar xzf git-2.7.2.tar.gz
+	cd git-2.7.2
+	make prefix=/usr/local/git all
+	make prefix=/usr/local/git install
+	echo 'export PATH=$PATH:/usr/local/git/bin' >> /etc/profile
+	source /etc/profile
+	# curl: (35) SSL connect error - yum update -y nss
+	# nvm - wget -qO- https://raw.githubusercontent.com/creationix/nvm/v0.33.8/install.sh | bash
+}
 _install_gitser(){	
 	groupadd git;
 	useradd git -g git -s /sbin/nologin 
