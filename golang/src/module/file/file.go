@@ -10,7 +10,8 @@ import (
 
 
 var globalSessions *session.Manager;
-
+var savetype map[int]string
+var savesource map[int]string
 const (
 	Source_Local = iota
 	Source_Net
@@ -48,6 +49,10 @@ func init() {
     mux.GetFunc("/file/policy",oss_policy)
     mux.PostFunc("/file/call",oss_callback)
     mux.GetFunc("/file/file",file)
+    savetype = make(map[int]string)
+    savesource = make(map[int]string)
+    savetype[101] = "oss"
+    savesource[101] = "http://wejass.oss-cn-hongkong.aliyuncs.com"
 }
 
 

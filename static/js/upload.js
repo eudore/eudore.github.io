@@ -33,7 +33,7 @@ Upjob.prototype = {
             console.log(err)
         })
 	},
-    osspolicy: function(call){
+/*    osspolicy: function(call){
         var now = Date.parse(new Date())/1000
         if(this.expire < now+3){  
             fetch("http://47.52.173.119:8081/file/policy",{method: 'GET'}).then(
@@ -57,16 +57,7 @@ Upjob.prototype = {
             call()
         }
     },
-    ossup: function(){
-        this.osspolicy(function(){
-            if(this.file.size < 512<<20){
-                this.ossoneup()
-            }else{
-                this.ossmultiup()
-            }
-        })
-    },
-	ossoneup: function(){
+    ossoneup: function(){
         var data = new FormData();
         data.append("name","s")
         data.append("key",this.key+this.file.name)
@@ -85,33 +76,20 @@ Upjob.prototype = {
         }).catch(function(err) {
             console.log(err)
         })
-	},
-    ossmultiup: function(){
-        
-    }
-}
-
-function Upload() {
-}
-Upload.prototype = {
-	queue: new Array(),
-	thread: 3,
-	start: function(){
-		if(this.thread<3){
-			this.thread++
-		}
-	},
-	add: function(obj){
-		if(obj instanceof FileList || obj instanceof File){
-			queue.append(new Upjob(this,obj))
-		}else if(obj instanceof HTMLInputElement && obj.type=="file"){
-			queue.append(new Upjob(this,obj.files))
-		}
-	},
-    osspolicy: function(call){
+    },*/
+    ossup: function(){
+        this.osspolicy(function(){
+            if(this.file.size < 512<<20){
+                this.ossoneup()
+            }else{
+                this.ossmultiup()
+            }
+        })
+    },
+    ossone: function(call){
         var now = Date.parse(new Date())/1000
         if(this.expire < now+3){  
-            fetch("http://47.52.173.119:8081/file/policy",{method: 'GET'}).then(
+            fetch("http://47.52.173.119:8081/file/policy?type=ossone&len="+this.file.size ,{method: 'POST'}).then(
                 function(response) {
                 if (!response.ok) throw new Error(response.statusText)
                 return response.json()
@@ -124,6 +102,24 @@ Upload.prototype = {
                 this.expire = parseInt(obj['expire'])
                 this.callbackbody = obj['callback'] 
                 this.key = obj['dir']
+                var data = new FormData();
+                data.append("name",this.file.name)  //file name
+                data.append("key",this.key+this.file.name)  //up path
+                data.append("policy",this.policyBase64)
+                data.append("OSSAccessKeyId",this.accessid)
+                data.append("success_action_status",200)
+                data.append("callback",this.callbackbody)
+                data.append("signature",this.signature)
+                data.append("file",this.file)
+                console.log(data)
+                fetch(this.host,{ method: 'POST', body: data}).then(function(response) {
+                    if (!response.ok) throw new Error(response.statusText)
+                    return response.text()
+                }).then(function(data){
+                    console.log(data)
+                }).catch(function(err) {
+                    console.log(err)
+                })
                 call()
             }).catch(function(err) {
                 console.log(err)
@@ -131,7 +127,36 @@ Upload.prototype = {
         }else{
             call()
         }
+    },
+    ossmultiup: function(){
+        
     }
+}
+
+function Upload() {
+}
+Upload.prototype = {
+	queue: new Array(),
+	thread: 0,
+    maxthread: 3,
+	start: function(){
+
+        for(var i of this.queue){
+            if(this.thread<this.maxthread){
+                i.upfile() && this.thread++
+            }else{
+                break
+            }
+        }
+	},
+	add: function(obj){
+		if(obj instanceof FileList || obj instanceof File){
+			this.queue.push(new Upjob(this,obj))
+		}else if(obj instanceof HTMLInputElement && obj.type=="file"){
+			this.queue.push(new Upjob(this,obj.files))
+		}
+        return this
+	}
 }
 
 

@@ -12,7 +12,8 @@
         "use strict";
         var up = new window.Upload()
         function upload(){
-            up.add(document.getElementById('upload'))
+            console.log(document.getElementById('upload').files)
+            up.add(document.getElementById('upload')).start()
             return
             var data = new FormData();
             //var obj = document.querySelector('input[type="file"]').files
@@ -84,7 +85,7 @@
         function testpost(){
             var data = new FormData();
             data.append("name","s")
-            fetch("http://47.52.173.119:8081/file/file?user=a",{method: 'POST',body: data}).then(
+            fetch("http://47.52.173.119:8081/file/weer/public/test",{method: 'POST',body: data}).then(
                 function(response) {
                 if (!response.ok) throw new Error(response.statusText)
                 return response.text()

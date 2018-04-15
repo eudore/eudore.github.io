@@ -8,6 +8,7 @@ import (
     "strings"
     "net/http"
     "encoding/json"
+    "public/router"
     "public/log"
     "database/sql"
     _ "github.com/go-sql-driver/mysql"
@@ -21,19 +22,40 @@ func init() {
     uptype["localmore"]     =   up_localmore
     uptype["localone"]      =   up_localone
     uptype["localmulti"]    =   up_localmulti
-    uptype["localpart"]     =   up_localpart
-    uptype["ossone"]        =   up_localmulti
+    uptype["localpart"]     =   up_localmulti
+    uptype["ossone"]        =   up_ossone
     uptype["ossmulti"]      =   up_localmulti
     uptype["osscallback"]   =   up_localmulti
 }
 
 func file_up(w http.ResponseWriter, r *http.Request) {
-    r.ParseForm()
-    if v,ok := uptype[r.Form["type"][0]]; ok {
-        v(w,r)
+    if r.URL.RawQuery != "" {  
+        if v,ok := uptype[r.URL.RawQuery]; ok {
+            v(w,r)
+        }else{
+            log.Warning("invalid upload file type: ",r.URL.RawQuery)
+        }
     }else{
-        log.Warning("invalid upload file type",r.Form["type"])
+        file_selectsave(w,r)
     }
+}
+
+func file_selectsave(w http.ResponseWriter, r *http.Request) {
+    if db, err := sql.Open("mysql","root:@/Jass");err==nil {
+        defer db.Close()
+        var s int;
+        args := router.GetAllValues(r)
+        err := db.QueryRow("SELECT Source FROM v_auth_authorized WHERE UName=? and PName=?;",args["user"],args["zone"]).Scan(&s)
+        log.Info(err)
+        if err==nil {
+            responseBody,_ := json.Marshal(map[string]interface{}{"result": 0,"type": savetype[s],"data": s})
+            w.Header().Set("Content-Type", "application/json")
+            w.WriteHeader(http.StatusOK)
+            w.Write(responseBody)
+            return
+        }
+        log.Info(args["user"],args["zone"],s)
+    }       
 }
 
 func file_insert(path ,source string) error {
@@ -46,6 +68,7 @@ func file_insert(path ,source string) error {
     }   
     return nil
 }
+
 
 func up_localmore(w http.ResponseWriter, r *http.Request) {
     //设置内存大小
@@ -108,4 +131,11 @@ func up_localone(w http.ResponseWriter, r *http.Request) {
 func up_localmulti(w http.ResponseWriter, r *http.Request) {
     // defer r.Body.Close()  
     // data, _ := ioutil.ReadAll(r.Body) //获取post的数据  
+}
+
+
+
+func up_ossone(w http.ResponseWriter, r *http.Request) {
+    vdir := strings.SplitN(r.URL.Path,"/",3)[2]
+    log.Info(vdir)
 }
