@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS `tb_auth_project`(
 	`Range` INT UNSIGNED DEFAULT 0,
 	`Level` INT UNSIGNED DEFAULT 0 COMMENT 'public protected group private',
 	`Info` VARCHAR(50),
+	`Store` INT UNSIGNED DEFAULT 0,
 	`EditTime` DATE,
 	`CreateTime` DATE
 );
@@ -44,11 +45,21 @@ CREATE TABLE IF NOT EXISTS `tb_file_save`(
 	`Name` VARCHAR(100),
 	`Hash` char(32) UNIQUE,
 	`UID` int UNSIGNED DEFAULT 0,
-	`Source` INT UNSIGNED DEFAULT 0,
+	`Store` INT UNSIGNED DEFAULT 0,
 	`Path` VARCHAR(100),
 	`Size` INT UNSIGNED DEFAULT 0,
 	`ModTime` TIMESTAMP(6)
 );
+
+
+DROP TABLE IF EXISTS `tb_file_store`;
+CREATE TABLE IF NOT EXISTS `tb_file_store`(
+	`ID` INT UNSIGNED DEFAULT 0,
+	`Uptype` INT UNSIGNED DEFAULT 0,
+	`Uphost` VARCHAR(64),
+	`Key` VARCHAR(64),
+	`Secret` VARCHAR(64)
+)
 
 DROP TABLE IF EXISTS `tb_note_save`;
 CREATE TABLE IF NOT EXISTS `tb_note_save`(
