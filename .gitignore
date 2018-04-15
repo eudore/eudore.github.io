@@ -4,7 +4,9 @@ sftp-config.json
 /config/note.txt
 /config/conf.json
 /config/nginx/openssl-*
+/golang/index
 /golang/src/index
+/golang/src/gomemcache/
 /python/tasks.txt
 /download/
 /upload/
