@@ -166,7 +166,7 @@ _install_git(){
 	cd git-2.7.2
 	make prefix=/usr/local/git all
 	make prefix=/usr/local/git install
-	echo 'export PATH=$PATH:/usr/local/git/bin' >> /etc/profile
+	echo "export PATH=$PATH:/usr/local/git/bin" >> /etc/profile
 	source /etc/profile
 	# curl: (35) SSL connect error - yum update -y nss
 	# nvm - wget -qO- https://raw.githubusercontent.com/creationix/nvm/v0.33.8/install.sh | bash
@@ -194,6 +194,14 @@ _install_docker(){
 	docker pull memcached
 	docker run --name memcached -p 12001:11211 -d memcached memcached -m 64
 	docker run --name mysql -d --rm -p 3306:3306 -v /data/docker/mariadb:/var/lib/mysql -e MYSQL_ROOT_PASSWORD=TPG4ppk4rlncL3lO  mariadb
+}
+_install_golang(){
+	wget https://dl.google.com/go/go1.10.1.linux-amd64.tar.gz
+	tar axf go1.10.1.linux-amd64.tar.gz -C /usr/local
+	cat > /etc/profile.d/go.sh << EOF
+export PATH=$PATH:/usr/local/go/bin
+export GOPATH=/root/go:/data/web/golang
+EOF
 }
 _main(){
 	set -e

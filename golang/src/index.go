@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	_ "github.com/go-sql-driver/mysql"
 	_ "public/cache/memcache"
 	_ "public/session/memcache"
 	"public/config"

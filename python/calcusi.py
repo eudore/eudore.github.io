@@ -11,7 +11,7 @@ import hashlib
 import requests
 
 
-root='/data/web/static/html'
+root='/data/web/static'
 def checksum(data):
 	return checksha512(data)
 
@@ -68,7 +68,7 @@ def readSI(file):
 			else:
 				filepath = os.path.join(base,r.group(1))
 			data = getdata(filepath)
-			if data!=None:
+			if data==None:
 				continue
 			data = checksum(data)
 			r2 = re.match('.*\s+integrity=[\"\'](\S*)[\"\'].*', line)

@@ -1,13 +1,19 @@
+package file;
 
+import (
+	"time"
+	"net/http"
+	"database/sql"
+)
 
 
 type Manager struct {
 	storetype 	map[int]Store
-	storeinfo 	map[int]Info
+	storeinfo 	map[int]*StoreInfo
 	storetoken	map[string]Token
 }
 
-type Info struct {
+type StoreInfo struct {
 	Uptype 	int
 	Uphost 	string
 	Key 	string
@@ -15,16 +21,16 @@ type Info struct {
 }
 
 type Token struct {
-	Info
+	StoreInfo
 	Path  	string
 	Size 	int
-	Expire 	time.time
+	Expire 	time.Time
 }
 
 
 type Store interface {
 	Policy(calluri,dir string,len int) []byte
-	UpFile(w http.ResponseWriter, r *http.Request)
+	Save(w http.ResponseWriter, r *http.Request)
 	Load(path string)
 }
 
@@ -38,17 +44,17 @@ func (m *Manager) Load() error {
 		var secret string
 		rows, err := db.Query("SELECT ID,Uptype,Uphost,Key,Secret FROM tb_file_store;")
 		if err == nil {
-			ns := make(map[int]FileStore)
+			ns := make(map[int]*StoreInfo)
 			for rows.Next(){
-				rows.Scan(&id,&uptype,&host,&key,&Secret)
-				auth[id]=&FileStore{	Uptype: uptype,	Uphost: host,	Key: key,	Secret: secret 	}
+				rows.Scan(&id,&uptype,&host,&key,&secret)
+				ns[id]=&StoreInfo{	Uptype: uptype,	Uphost: host,	Key: key,	Secret: secret 	}
 			}
 			m.storeinfo = ns
 			return nil
 		}
 		return err
 	}
-	return err
+	return nil
 }
 
 
