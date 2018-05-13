@@ -7,8 +7,8 @@ import (
     "net/http"
     "html/template"
     "public/log"
+    "module/file/filestore"
     //"database/sql"
-    _ "github.com/go-sql-driver/mysql"
     //"github.com/aliyun/aliyun-oss-go-sdk/oss"
 )
 
@@ -34,25 +34,13 @@ func local_list(w http.ResponseWriter, r *http.Request) {
     t.Execute(w, map[string]interface{}{"files": fs});
 }
 
-func file_list(w http.ResponseWriter, r *http.Request) []FileInfo{
-/*    path := strings.SplitN(r.RequestURI,"/",3)[2]
-    rows, err := db.Query("SELECT Name,Size,ModTime FROM tb_file_save WHERE Hash=?;",path)
-    if err == nil {
-        log.Info("auth to: ",name)  
-        auth := make(map[string]int)
-        for rows.Next(){
-            rows.Scan(&name,&level)
-            auth[name]=level
-            log.Info("auth path: ",name," level: ",level)
-        }
-    }*/
-    return nil
+func file_list(w http.ResponseWriter, r *http.Request) {
+    fs := filestore.List(r.URL.Path)
+    t, _ := template.ParseFiles("/data/web/templates/file/file.html");
+    t.Execute(w, map[string]interface{}{"files": fs});
 }
 
 
-func oss_list(w http.ResponseWriter, r *http.Request) {
-    
-}
 
 
 func get_size(file_bytes int64) string {

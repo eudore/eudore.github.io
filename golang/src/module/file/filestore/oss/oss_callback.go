@@ -1,6 +1,6 @@
 //	by 	https://help.aliyun.com/document_detail/50092.html?spm=a2c4g.11186623.6.1089.kGyEEu#%E8%B0%83%E8%AF%95%E5%9B%9E%E8%B0%83%E6%9C%8D%E5%8A%A1%E5%99%A8
 
-package file;
+package oss;
 
 import (
 	"crypto"
@@ -21,6 +21,42 @@ type CallbackBody struct{
 	Filename 	string
 	Size 		int
 	MimeType 	string
+}
+
+
+func (s *Ossstore) Save(r *http.Request) ([]string, error) {
+	bytePublicKey, err := getPublicKey(r)
+	if err != nil {
+		return nil,err
+	}
+
+	// Get Authorization bytes : decode from Base64String
+	byteAuthorization, err := getAuthorization(r)
+	if err != nil {
+		return nil,err
+	}
+
+	// Get MD5 bytes from Newly Constructed Authrization String.
+	byteMD5, bodyContent, err := getMD5FromNewAuthString(r)
+	if err != nil {
+		return nil,err
+	}
+	// VerifySignature and response to client
+	if verifySignature(bytePublicKey, byteMD5, byteAuthorization) {
+
+		// Do something you want accoding to callback_body ...
+
+		// response OK : 200
+		var body CallbackBody
+		json.Unmarshal(bodyContent, &body)
+		return []string{"/"+body.Filename},nil
+		// responseSuccess(w,&body)
+	} else {
+		// response FAILED : 400
+		return nil,errors.New("400")
+		//responseFailed(w)
+	}
+
 }
 
 func oss_callback(w http.ResponseWriter, r *http.Request) {
@@ -158,7 +194,7 @@ func verifySignature(bytePublicKey []byte, byteMd5 []byte, authorization []byte)
 		return false
 	}
 
-	fmt.Println("Signature Verification is Successful.")
+	//fmt.Println("Signature Verification is Successful.")
 	return true
 }
 

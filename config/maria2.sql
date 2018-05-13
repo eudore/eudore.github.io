@@ -20,7 +20,6 @@ CREATE TABLE IF NOT EXISTS `tb_auth_project`(
 	`Range` INT UNSIGNED DEFAULT 0,
 	`Level` INT UNSIGNED DEFAULT 0 COMMENT 'public protected group private',
 	`Info` VARCHAR(50),
-	`Store` INT UNSIGNED DEFAULT 0,
 	`EditTime` DATE,
 	`CreateTime` DATE
 );
@@ -38,28 +37,39 @@ AS
 SELECT U.`UID`,U.`Name` UName,P.`PID`,P.`Name` PName,A.`Level`,P.`Info`,P.`EditTime` FROM tb_auth_user U INNER JOIN tb_auth_authorized A On U.UID=A.UID INNER JOIN tb_auth_project P ON A.PID=P.PID;
 
 
+DROP TABLE IF EXISTS `tb_file_project`
+CREATE TABLE IF NOT EXISTS `tb_file_project`(
+	`FID` INT UNSIGNED PRIMARY KEY Auto_Increment COMMENT 'file project ID',
+	`UID` INT UNSIGNED,
+	`Path` VARCHAR(32) NOT NULL,
+	`Store` INT UNSIGNED DEFAULT 0 COMMENT 'store ID',
+	`Info` VARCHAR(50),
+	`Size` INT,
+	`MaxSize` INT DEFAULT 0
+)
+
+DROP TABLE IF EXISTS `tb_file_store`;
+CREATE TABLE IF NOT EXISTS `tb_file_store`(
+	`ID` INT UNSIGNED DEFAULT 0 COMMENT 'store ID',
+	`Name` VARCHAR(32) COMMENT 'store name',
+	`Host` VARCHAR(64) NOT NULL COMMENT 'Host',
+	`Config` VARCHAR(256) COMMENT 'config'
+)
+
 DROP TABLE IF EXISTS `tb_file_save`;
 CREATE TABLE IF NOT EXISTS `tb_file_save`(
-	`ID` INT UNSIGNED PRIMARY KEY,
-	`PID` INT UNSIGNED DEFAULT 0,
-	`Name` VARCHAR(100),
-	`Hash` char(32) UNIQUE,
-	`UID` int UNSIGNED DEFAULT 0,
-	`Store` INT UNSIGNED DEFAULT 0,
-	`Path` VARCHAR(100),
+	`ID` INT UNSIGNED PRIMARY KEY Auto_Increment COMMENT 'file save ID',
+	`FID` INT UNSIGNED DEFAULT 0 COMMENT 'file project ID',
+	`Name` VARCHAR(100) COMMENT 'file name',
+	`Path` VARCHAR(100) COMMENT 'file path',
+	`Hash` char(32) UNIQUE COMMENT 'file path hash',
+	`PHash` char(32) COMMENT 'file path parent hash',
+#	`UID` int UNSIGNED DEFAULT 0,
+#	`Store` INT UNSIGNED DEFAULT 0,
 	`Size` INT UNSIGNED DEFAULT 0,
 	`ModTime` TIMESTAMP(6)
 );
 
-
-DROP TABLE IF EXISTS `tb_file_store`;
-CREATE TABLE IF NOT EXISTS `tb_file_store`(
-	`ID` INT UNSIGNED DEFAULT 0,
-	`Uptype` INT UNSIGNED DEFAULT 0,
-	`Uphost` VARCHAR(64),
-	`Key` VARCHAR(64),
-	`Secret` VARCHAR(64)
-)
 
 DROP TABLE IF EXISTS `tb_note_save`;
 CREATE TABLE IF NOT EXISTS `tb_note_save`(

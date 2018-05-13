@@ -2,16 +2,18 @@
 package file;
 
 import (
-    "net/http"
-    "public/config"
-    "public/router"
-    "public/session"
+	"net/http"
+	"public/config"
+	"public/router"
+	"public/session"
+	"module/file/filestore"
+	_ "module/file/filestore/disk"
+	_ "module/file/filestore/oss"
 )
 
 
 var globalSessions *session.Manager;
-var savetype map[int]string
-var savesource map[int]string
+
 const (
 	Source_Local = iota
 	Source_Net
@@ -22,12 +24,12 @@ const (
 //  accessKeyId =   "LTAIoq1zEjIUpHUN"
 //  accessKeySecret =   "CZ8X8rq0s7p1qjFiDba5GTIeoQJ0vO"
 var (
-    conf_updir          =   config.Getconst("file_up_dir")
-    conf_accessKeyId    =   config.Getconst("file_oss_key")
-    conf_accessKeySecret=   config.Getconst("file_oss_secret")
-    conf_host           =   config.Getconst("file_oss_host")
-    conf_upload_dir     =   config.Getconst("file_oss_upload")
-    conf_callback_domian=   config.Getconst("file_oss_callback_domain")
+	conf_updir          =   config.Getconst("file_up_dir")
+	conf_accessKeyId    =   config.Getconst("file_oss_key")
+	conf_accessKeySecret=   config.Getconst("file_oss_secret")
+	conf_host           =   config.Getconst("file_oss_host")
+	conf_upload_dir     =   config.Getconst("file_oss_upload")
+	conf_callback_domian=   config.Getconst("file_oss_callback_domain")
 )
 
 const (
@@ -39,23 +41,20 @@ const (
 )
 
 func init() {
+	filestore.Reload()
 	sessionConfig := &session.ManagerConfig{CookieName: "token",EnableSetCookie: true, Gclifetime: 3600, Maxlifetime: 3600, Secure: true, CookieLifeTime: 3600, ProviderConfig: "127.0.0.1:12001"}
 	globalSessions, _ = session.NewManager("memcache", sessionConfig)
 	go globalSessions.GC()
 	mux := router.Instance()
-    mux.GetFunc("/file/:user/:zone/*",local_list)
-    mux.PostFunc("/file/:user/:zone/*",file_up)
-    mux.PutFunc("/file/:user/:zone/*",file_up)
-    mux.GetFunc("/file/policy",oss_policy)
-    mux.PostFunc("/file/call",oss_callback)
-    mux.GetFunc("/file/file",file)
-    savetype = make(map[int]string)
-    savesource = make(map[int]string)
-    savetype[101] = "oss"
-    savesource[101] = "http://wejass.oss-cn-hongkong.aliyuncs.com"
+	mux.GetFunc("/file/:user/:zone/*",file_list)
+	mux.PostFunc("/file/:user/:zone/*",file_up)
+	mux.PutFunc("/file/:user/:zone/*",file_up)
+	mux.GetFunc("/file/policy",oss_policy)
+	mux.PostFunc("/file/call",oss_callback)
+	mux.GetFunc("/file/file",file)
 }
 
 
 func file(w http.ResponseWriter, r *http.Request) {
-    w.Write([]byte("file"))
+	w.Write([]byte("file"))
 }
