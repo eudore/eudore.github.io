@@ -2,12 +2,12 @@ package main;
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	_ "github.com/go-sql-driver/mysql"
 	_ "public/cache/memcache"
 	_ "public/session/memcache"
 	"public/config"
+	"public/log"
 	"public/server"
 	"public/session"
 	"public/cache"
@@ -52,14 +52,18 @@ func test(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	//router
+	// router
 	mux := router.Instance()
 	static := http.FileServer(http.Dir("/data/web/static"))
 	mux.Handle("/js/", static)
 	mux.Handle("/css/", static)
-	mux.HandleFunc("/go/", test);
-	mux.Handle("/",http.HandlerFunc(test));
-	//start
+	mux.HandleFunc("/", test);
+	// set reload
+	server.SetReload(func() {
+		log.Info("reload")
+		config.Reload()
+	})
+	// start
 	err := server.Resolve(conf.Command,conf.Pidfile, func() error {
 		return server.ListenAndServe(fmt.Sprintf("%s:%d",conf.IP,conf.Port), mux)
 	})

@@ -17,6 +17,8 @@ const (
 
 type Callback func() error
 
+var reload func() = func() {}
+
 type Cmd struct {
 	Cmd 	string
 	Pidfile	string
@@ -24,6 +26,9 @@ type Cmd struct {
 	Handler Callback
 }
 
+func SetReload(call func()) {
+	reload = call
+}
 
 func Resolve(cmd ,pidfile string,handler Callback ) error {
 	c := Cmd{	
@@ -49,7 +54,7 @@ func Resolve(cmd ,pidfile string,handler Callback ) error {
 		fmt.Println("restart is", err==nil)
 	default:
 		err = errors.New("undefined command " + c.Cmd)
-		fmt.Println("undefined command",c.Cmd)
+		fmt.Println("undefined command ",c.Cmd)
 	}
 	return err
 }
@@ -78,7 +83,11 @@ func (c *Cmd) Status() error {
 }
 
 func (c *Cmd) Stop() error {
-	return syscall.Kill(c.Pid,syscall.SIGKILL)
+	return syscall.Kill(c.Pid,syscall.SIGTERM)
+}
+
+func (c *Cmd) Reload() error {
+	return syscall.Kill(c.Pid,syscall.SIGUSR1)
 }
 
 func (c *Cmd) Restart() error {

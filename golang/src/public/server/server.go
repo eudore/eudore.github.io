@@ -136,6 +136,7 @@ func (srv *Server) handleSignals() {
 	signal.Notify(
 		srv.signalChan,
 		syscall.SIGTERM,
+		syscall.SIGUSR1,
 		syscall.SIGUSR2,
 	)
 
@@ -145,6 +146,8 @@ func (srv *Server) handleSignals() {
 		case syscall.SIGTERM:
 			srv.logf("received SIGTERM, graceful shutting down HTTP server.")
 			srv.shutdownHTTPServer()
+		case syscall.SIGUSR1:
+			reload()
 		case syscall.SIGUSR2:
 			srv.logf("received SIGUSR2, graceful restarting HTTP server.")
 
