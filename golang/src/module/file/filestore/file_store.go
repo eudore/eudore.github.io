@@ -6,8 +6,8 @@ import (
 	"strings"
 	"errors"
 	"net/http"
-    "crypto/md5"
-    "encoding/hex"
+	"crypto/md5"
+	"encoding/hex"
 	"database/sql"
 )
 
@@ -22,7 +22,7 @@ var localstore	[]int
 type Store interface {
 	Policy(*PolicyInfo) []byte
 	Save(*http.Request) ([]string, error)
-//	Load(path string)
+	Load(w http.ResponseWriter, r *http.Request) error
 //	Del(path string) error
 }
 
@@ -49,16 +49,16 @@ type FileInfo struct {
 
 
 func get_size(file_bytes int64) string {
-    var i     int
-    var units = [6]string{"B", "K", "M", "G", "T", "P"}
-    i = 0
-    for {
-        if file_bytes < 1024 {
-            return fmt.Sprintf("%d", file_bytes) + units[i]
-        }
-        file_bytes = file_bytes >> 10
-        i++
-    }
+	var i     int
+	var units = [6]string{"B", "K", "M", "G", "T", "P"}
+	i = 0
+	for {
+		if file_bytes < 1024 {
+			return fmt.Sprintf("%d", file_bytes) + units[i]
+		}
+		file_bytes = file_bytes >> 10
+		i++
+	}
 }
 // type Handle struct {
 // 	path 	string
@@ -203,10 +203,20 @@ func Del(fs []string) {
 }
 
 
+func IsFile(path string) bool {
+	if db, err := sql.Open("mysql","root:@/Jass");err==nil {
+		defer db.Close()
+		var n int = 0
+		db.QueryRow("SELECT ID FROM `tb_file_save` WHERE `Hash`=?;",PathHash(path)).Scan(&n)
+		return n!=0
+	}
+	return false
+}
+
 func PathHash(path string) string{
-    md5Ctx := md5.New()
-    md5Ctx.Write([]byte(path))
-    return hex.EncodeToString(md5Ctx.Sum(nil))
+	md5Ctx := md5.New()
+	md5Ctx.Write([]byte(path))
+	return hex.EncodeToString(md5Ctx.Sum(nil))
 }
 func init() {
 	newstore = make(map[string]func(string) (Store,error))

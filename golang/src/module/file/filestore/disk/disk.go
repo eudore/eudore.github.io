@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"path"
 	"net/http"
+	"net/url"
 	"errors"
 	"strings"
 	"encoding/json"
@@ -64,6 +65,17 @@ func (fs *Diskstore) Save(r *http.Request) ([]string, error) {
 }
 
 
+func (fs *Diskstore) Load(w http.ResponseWriter, r *http.Request) error {
+	file, err := os.Open(fs.Dir+r.URL.Path[6:])
+	if err != nil {
+		return err
+	}
+	fileName := url.QueryEscape(path.Base(r.URL.Path[6:])) 
+	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Header().Set("content-disposition", "attachment; filename=\""+fileName+"\"")
+	_, error := io.Copy(w, file)
+	return error
+}
 
 func New(config string) (filestore.Store, error) {
 	var fs Diskstore
@@ -148,24 +160,3 @@ func up_localmulti(w http.ResponseWriter, r *http.Request) {
 
 
 
-
-/*
-func downloadFile(fileFullPath string, res *restful.Response) {
-	file, err := os.Open(fileFullPath)
-
-	if err != nil {
-		res.WriteEntity(_dto.ErrorDto{Err: err})
-		return
-	}
-
-	defer file.Close()
-	fileName := path.Base(fileFullPath)
-	fileName = url.QueryEscape(fileName) // 防止中文乱码
-	res.AddHeader("Content-Type", "application/octet-stream")
-	res.AddHeader("content-disposition", "attachment; filename=\""+fileName+"\"")
-	_, error := io.Copy(res.ResponseWriter, file)
-	if error != nil {
-		res.WriteErrorString(http.StatusInternalServerError, err.Error())
-		return
-	}
-}*/

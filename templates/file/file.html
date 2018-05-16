@@ -163,28 +163,35 @@
 	</script>
 </head>
 <body>
-	<input id="upload" type='file' multiple />
-	<button onclick="upload()">local提交</button>
-	<button onclick="testpost()">testpost</button>
-	<button onclick="">oss policy</button>
-	<button onclick="ossupload()">oss提交</button>
-	<table>
-		<tbody>
-			{{range $k,$file := .files}}
-			<tr>
-				{{if $file.Dir }}
-				<td class="file-folder"></td>
-				{{else}}
-				<td class="file-ico"></td>
-				{{end}}
-				<td><a href="./{{$file.Name}}">{{$file.Name}}</a></td>
-				<td>{{$file.Size}}</td>
-				<td>{{$file.ModTime}}</td>
-			</tr>
-			{{end}}
-		</tbody>
-	</table>
-	<br><!--
+	<header></header>
+	<div>
+		<div>
+			<input id="upload" type='file' multiple />
+			<button onclick="upload()">local提交</button>
+			<button onclick="testpost()">testpost</button>
+			<button onclick="">oss policy</button>
+			<button onclick="ossupload()">oss提交</button>
+		</div>
+		<div>
+			<table>
+				<tbody>
+					{{range $k,$file := .files}}
+					<tr>
+						{{if $file.Dir }}
+						<td class="file-folder"></td>
+						{{else}}
+						<td class="file-ico"></td>
+						{{end}}
+						<td><a href="{{$.url}}/{{$file.Name}}">{{$file.Name}}</a></td>
+						<td>{{$file.Size}}</td>
+						<td>{{$file.ModTime}}</td>
+					</tr>
+					{{end}}
+				</tbody>
+			</table>
+		</div>
+	</div>
+	<!--
 	<iframe src="/upload" id="myframe" width="600" height="500">
 		<p>Your browser does not support iframes.</p>
 	</iframe>-->

@@ -9,6 +9,7 @@
 package oss;
 
 import (
+	"net/http"
 	"encoding/json"
 	"module/file/filestore"
 )
@@ -21,7 +22,10 @@ type Ossstore struct {
 	Secret	string
 }
 
-func (s *Ossstore) Load(path string) {
+
+func (s *Ossstore) Load(w http.ResponseWriter, r *http.Request) error {
+	http.Redirect(w,r,s.Host+r.URL.Path,302)
+	return nil
 }
 
 func New(config string) (filestore.Store, error) {
