@@ -56,6 +56,8 @@ _install_mem(){
 	/usr/local/memcached/bin/memcached -u root -m 256 -U 0 -p 12002 -l 0.0.0.0 -d
 }
 _install_ssl(){
+	# openssl req -new -newkey rsa:2048 -sha256 -nodes -out example_com.csr -keyout example_com.key -subj "/C=CN/ST=ShenZhen/L=ShenZhen/O=Example Inc./OU=Web Security/CN=example.com"
+	# openssl x509 -req -days 365 -in example_com.csr -signkey example_com.key -out example_com.crt
 	if [ ! -f ~/.acme.sh/acme.sh ];then
 		yum install -y socat
 		cd /tmp
@@ -166,8 +168,8 @@ _install_git(){
 	cd git-2.7.2
 	make prefix=/usr/local/git all
 	make prefix=/usr/local/git install
-	echo "export PATH=$PATH:/usr/local/git/bin" >> /etc/profile
-	source /etc/profile
+	echo 'export PATH=$PATH:/usr/local/git/bin' > /etc/profile.d/git.sh
+	source /etc/profile.d/git.sh
 	# curl: (35) SSL connect error - yum update -y nss
 	# nvm - wget -qO- https://raw.githubusercontent.com/creationix/nvm/v0.33.8/install.sh | bash
 }
@@ -198,10 +200,8 @@ _install_docker(){
 _install_golang(){
 	wget https://dl.google.com/go/go1.10.1.linux-amd64.tar.gz
 	tar axf go1.10.1.linux-amd64.tar.gz -C /usr/local
-	cat > /etc/profile.d/go.sh << EOF
-export PATH=$PATH:/usr/local/go/bin
-export GOPATH=/root/go:/data/web/golang
-EOF
+	echo 'export PATH=$PATH:/usr/local/go/bin' > /etc/profile.d/go.sh
+	echo 'export GOPATH=/root/go:/data/web/golang' >> /etc/profile.d/go.sh
 }
 _main(){
 	set -e

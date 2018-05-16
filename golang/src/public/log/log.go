@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sync"
 	"time"
+	"encoding/json"
 	"runtime"
 )
  const (
@@ -197,4 +198,9 @@ func Error(args ...interface{}) {
 } 
 func Fatal(args ...interface{}) {
 	out.Output(FATAL,2,fmt.Sprint(args...))
+}
+
+func Json(arg interface{}) {
+	indent,_ := json.MarshalIndent(&arg, "", "\t")
+	out.Output(DEBUG,2,"\n"+string(indent))
 }

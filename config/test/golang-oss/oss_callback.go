@@ -1,6 +1,6 @@
 //	by 	https://help.aliyun.com/document_detail/50092.html?spm=a2c4g.11186623.6.1089.kGyEEu#%E8%B0%83%E8%AF%95%E5%9B%9E%E8%B0%83%E6%9C%8D%E5%8A%A1%E5%99%A8
 
-package file;
+package main;
 
 import (
 	"crypto"
@@ -9,7 +9,7 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
-    "encoding/json"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"

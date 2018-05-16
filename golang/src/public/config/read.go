@@ -10,6 +10,9 @@ import (
 
 
 func readconfig(sour string) ([]byte,error) {
+	if len(sour) == 0 {
+		return nil,errors.New("config is null")
+	}
 	s := strings.SplitN(sour, "://",2)
 	switch s[0] {
 	case "http":

@@ -10,11 +10,10 @@ import (
 )
  
 type Config struct {
-	Config 		string 		`comment:"config path"`
+	Config      string      `comment:"config path"`
 	Workdir     string      `comment:"Current working directory"`
-	Command     string
+	Command     string      `comment:"start command"`
 	Tempdir     string      `comment:"Template file dir"`
-	Confile     string      `comment:"Config file path"`
 	Pidfile     string      `comment:"Pid file path"`
 	Logfile     string      `comment:"Log file path"`
 	IP          string      `comment:"Listen Ip Addr"`
@@ -33,25 +32,21 @@ func Instance() *Config {
 }
 
 func init() {
-	Resolve()
+	Reload()
 }
 
 func Reload() {
-	Resolve()
-}
-
-func Resolve() {
 	// set default config
 	conf = &Config {
-		Workdir:    "/data/web",
-		Tempdir:    "/data/web/template",
-		Confile:    "/data/web/config/conf.json",
-		Pidfile:    "/var/run/index.pid",
-		Logfile:    "/data/web/logs",
-		IP:         "",
-		Port:       8080,
-		Dbconfig:   "root:@/Jass",
-		Memaddr:    "127.0.0.1:11211",
+		Workdir:	"/data/web",
+		Tempdir:	"/data/web/template",
+		Config:		"/data/web/config/conf.json",
+		Pidfile:	"/var/run/index.pid",
+		Logfile:	"/data/web/logs",
+		IP:			"",
+		Port:		8080,
+		Dbconfig:	"root:@/Jass",
+		Memaddr:	"127.0.0.1:11211",
 	}
 	// init flag
 	s := reflect.TypeOf(conf).Elem()
