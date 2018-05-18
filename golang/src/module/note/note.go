@@ -7,6 +7,8 @@ import (
 	"strings"
 	"io/ioutil" 
 	"html/template"
+	"encoding/json"
+	"public/config"
 	"public/router"
 	"public/session"
 	"module/tools"
@@ -14,17 +16,22 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
+var conf *config.Config;
 var globalSessions *session.Manager;
+var dbconfig string = "root:@/Jass"
 
 func init() {
-	sessionConfig := &session.ManagerConfig{CookieName: "gosessionid",Gclifetime: 3600,ProviderConfig: "127.0.0.1:12001"}
+	conf = config.Instance()
+	sessionConfig := &session.ManagerConfig{}
+	json.Unmarshal([]byte(conf.Session),sessionConfig)
 	globalSessions, _ = session.NewManager("memcache", sessionConfig)
 	go globalSessions.GC()
 	mux := router.Instance()
-	mux.GetFunc("/note/#index^[0-9a-z]{32,32}$/content", getcontent)
-	mux.PostFunc("/note/#index^[0-9a-z]{32,32}$/content", postcontent)
-	mux.PutFunc("/note/#index^[0-9a-z]{32,32}$/content", putcontent)
-	mux.DeleteFunc("/note/#index^[0-9a-z]{32,32}$/content", delcontent)
+	rhash := "/note/#index^[0-9a-z]{32,32}$/content"
+	mux.GetFunc(rhash, getcontent)
+	mux.PostFunc(rhash, postcontent)
+	mux.PutFunc(rhash, putcontent)
+	mux.DeleteFunc(rhash, delcontent)
 	mux.DeleteFunc("/api/note/#index^[0-9a-z]{32,32}$/content", delcontent)
 	
 	mux.GetFunc("/note/#index^[0-9a-z]{32,32}$/index", getindex)
@@ -38,15 +45,16 @@ func postcontent(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()  
 	data, _ := ioutil.ReadAll(r.Body) //获取post的数据  
 	index := router.GetValue(r, "index")
-	if db, err := sql.Open("mysql","root:@/Jass");err==nil {
+	if db, err := sql.Open("mysql",dbconfig);err==nil {
 		defer db.Close()
 		if stmt, err := db.Prepare("INSERT tb_note_save(Content,Hash) VALUES(?,?);");err==nil{
 			_, err = stmt.Exec(data, index)	
-			w.Write([]byte(fmt.Sprintf("{\"result\":%t}",err==nil)))
+			responseBody,_ := json.Marshal(map[string]interface{}{"result": err==nil})
+			w.Write(responseBody)
 			return
 		}
 	}	
-	w.Write([]byte(fmt.Sprintf("{\"result\":%t}",false)))
+	//w.Write([]byte(fmt.Sprintf("{\"result\":%t}",false)))
 }
 
 func putcontent(w http.ResponseWriter, r *http.Request) {
@@ -55,28 +63,26 @@ func putcontent(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	data, _ := ioutil.ReadAll(r.Body)
 	index := router.GetValue(r, "index")
-	if db, err := sql.Open("mysql","root:@/Jass");err==nil {
+	if db, err := sql.Open("mysql",dbconfig);err==nil {
 		defer db.Close()
 		if stmt, err := db.Prepare("UPDATE tb_note_save SET Content=? WHERE Hash=?;");err==nil{
 			_, err = stmt.Exec(data, index)
-			w.Write([]byte(fmt.Sprintf("{\"result\":%t}",err==nil)))
-			return
+			responseBody,_ := json.Marshal(map[string]interface{}{"result": err==nil})
+			w.Write(responseBody)
 		}
 	}	
-	w.Write([]byte(fmt.Sprintf("{\"result\":%t}",false)))
 }
 
 func delcontent(w http.ResponseWriter, r *http.Request) {
 	index := router.GetValue(r, "index")
-	if db, err := sql.Open("mysql","root:@/Jass");err==nil {
+	if db, err := sql.Open("mysql",dbconfig);err==nil {
 		defer db.Close()
 		if stmt, err := db.Prepare("DELETE FROM tb_note_save WHERE Hash=?;");err==nil{
 			_, err = stmt.Exec(index)
-			w.Write([]byte(fmt.Sprintf("{\"result\":%t}",err==nil)))
-			return
+			responseBody,_ := json.Marshal(map[string]interface{}{"result": err==nil})
+			w.Write(responseBody)
 		}
 	}	
-	w.Write([]byte(fmt.Sprintf("{\"result\":%t}",false)))
 }
 
 
@@ -87,16 +93,16 @@ func note(w http.ResponseWriter, r *http.Request) {
 	var val string
 	//user := router.GetValue(r, "user")
 	//index := router.GetValue(r, "index")
-	if db, err := sql.Open("mysql","root:@/Jass");err==nil {
+	if db, err := sql.Open("mysql",dbconfig);err==nil {
 		defer db.Close()
 		db.QueryRow("SELECT EditTime,Content FROM tb_note_save WHERE Hash=?;",md5).Scan(&t,&val)
 	}	
 	var doc bytes.Buffer
 	tmp, err := template.ParseFiles("/data/web/templates/note/content.html")
-    if err == nil {
-        tmp.Execute(&doc,map[string]interface{}{"Content": template.HTML(val),"Edittime": t})
+	if err == nil {
+		tmp.Execute(&doc,map[string]interface{}{"Content": template.HTML(val),"Edittime": t})
 		w.Write([]byte(doc.String()))
-    }
+	}
 }
 
 

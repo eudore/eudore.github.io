@@ -3,9 +3,7 @@ package config;
 import (
 	"fmt"
 	"os"
-	"reflect"
 	"strings"
-	"strconv"
 	"encoding/json"
 )
  
@@ -20,108 +18,41 @@ type Config struct {
 	Port        int         `comment:"Server use port"`
 	Dbconfig    string      `comment:"MariaDB connect info"`
 	Memaddr     string      `comment:"Memcached connect addr and port"`
+	Session 	string
 	Const       map[string]*string
 	Enable      []string
+	Flag 		map[string]interface{}
 	Mode        map[string]interface{}
 }
 
-var conf *Config
-
-func Instance() *Config {
-	return conf
-}
-
-func init() {
-	Reload()
-}
-
-func Reload() {
-	// set default config
-	conf = &Config {
-		Workdir:	"/data/web",
-		Tempdir:	"/data/web/template",
-		Config:		"/data/web/config/conf.json",
-		Pidfile:	"/var/run/index.pid",
-		Logfile:	"/data/web/logs",
-		IP:			"",
-		Port:		8080,
-		Dbconfig:	"root:@/Jass",
-		Memaddr:	"127.0.0.1:11211",
-	}
-	// init flag
-	s := reflect.TypeOf(conf).Elem()
-	flag := make(map[string]interface{})
-	for _,v := range os.Args[1:] {
-		if !strings.HasPrefix(v, "--") {
-			fmt.Println("invalid args",v)
-			continue
-		}
-		kv := strings.SplitN(v[2:],"=",2)
-		switch kv[0]{
-		case "mode":
-		case "disable":
-			if len(kv)==2 && kv[1]!="" {
-				flag[kv[0]]=kv[1]
-				continue
-			}
-		case "help":
-			for i := 0; i < s.NumField(); i++ {
-				if c := s.Field(i).Tag.Get("comment");c != "" {
-					fmt.Println("  --"+strings.ToLower(s.Field(i).Name),"\t",c)
-				}
-			}
-			fmt.Println("  --help \t Show help")
-			continue
-		default:
-			if f,ok := s.FieldByName(strings.Title(kv[0]));ok{
-				if len(kv)==1 {
-					kv = append(kv,"")
-				}
-				switch f.Type.Kind() {
-				case reflect.Int:
-					if i,e := strconv.Atoi(kv[1]);e==nil{
-						flag[kv[0]] = i
-					}else{
-						fmt.Println("error args",v)
-					}
-				case reflect.Bool:
-					if b,e := strconv.ParseBool(kv[1]);e==nil{
-						flag[kv[0]] = b
-					}else{
-						flag[kv[0]] = true
-					}
-				default:
-					flag[kv[0]] = kv[1]
-				}
-				continue
-			}
-		}
-		fmt.Println("error args",v)
-	}
+func (c *Config) setconf() {
 	// set flag workdir 
-	if value, ok := flag["workdir"].(string); ok {
+	if value, ok := c.Flag["workdir"].(string); ok {
 		conf.Workdir = value 
 	}
 	os.Chdir(conf.Workdir)
 	// set flag config
-	if value, ok := flag["config"].(string); ok {
+	if value, ok := c.Flag["config"].(string); ok {
 		conf.Config = value
-	}
+	}	
 	// get config value
-	if c,err := readconfig(conf.Config);err == nil {
-		err := json.Unmarshal(c,&conf)
+	if cf, err := readconfig(c.Config);err == nil {
+		err := json.Unmarshal(cf,c)
 		if err != nil {
 			fmt.Println("配置解析失败:", err)
 		}
 	}else {
 		fmt.Println("配置读取失败:", err)
 	}
+}
+
+func (c *Config) setmode() {	
 	// set flag mode
-	if value, ok := flag["enable"].(string); ok {
+	if value, ok := c.Flag["enable"].(string); ok {
 		conf.Enable = append(conf.Enable,strings.Split(value,",")...)
-		delete(flag,"enable")
+		delete(c.Flag,"enable")
 	}
-	if value, ok := flag["disable"].(string); ok {
+	if value, ok := c.Flag["disable"].(string); ok {
 		var d []string
 		for _,ve := range conf.Enable {
 			b := true
@@ -143,11 +74,47 @@ func Reload() {
 			json.Unmarshal(b, &conf)
 		}
 	}
-	// set flag config
-	if b,err := json.Marshal(flag);err == nil {
+}
+
+func (c *Config) Reload() {
+	c.setconf()
+	c.setmode()
+}
+
+func NewConfig() *Config {
+	return &Config {
+		Workdir:	"/data/web",
+		Tempdir:	"/data/web/template",
+		Config:		"/data/web/config/conf.json",
+		Pidfile:	"/var/run/index.pid",
+		Logfile:	"/data/web/logs",
+		IP:			"",
+		Port:		8080,
+		Dbconfig:	"root:@/Jass",
+		Session:	`{"CookieName": "token","EnableSetCookie": true, "Gclifetime": 3600, "Maxlifetime": 3600, "Secure": true, "CookieLifeTime": 3600, "ProviderConfig": "127.0.0.1:12001"}`,
+	}
+}
+
+var conf *Config
+
+func Instance() *Config {
+	return conf
+}
+
+func init() {
+	// init flag
+	conf = NewConfig()
+	conf.Flag = readflag(os.Args[1:])
+	conf.Reload()
+	Reload()
+	if b,err := json.Marshal(conf.Flag);err == nil {
 		json.Unmarshal(b, &conf)
 	}
 	os.Chdir(conf.Workdir)  
+}
+
+func Reload() {
+	conf.Reload()
 }
 
 

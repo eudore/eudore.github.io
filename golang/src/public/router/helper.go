@@ -39,11 +39,9 @@ func (m *Mux) parse(rw http.ResponseWriter, req *http.Request) bool {
 // StaticRoute check if the request path is for Static route
 func (m *Mux) staticRoute(rw http.ResponseWriter, req *http.Request) bool {
 	for _, s := range m.Routes[static] {
-		if len(req.URL.Path) >= s.Size {
-			if req.URL.Path[:s.Size] == s.Path {
-				s.Handler.ServeHTTP(rw, req)
-				return true
-			}
+		if len(req.URL.Path) >= s.Size && req.URL.Path[:s.Size] == s.Path{
+			s.Handler.ServeHTTP(rw, req)
+			return true
 		}
 	}
 	return false
@@ -82,11 +80,9 @@ func valid(path string) bool {
 // Clean url path
 func cleanURL(url *string) {
 	ulen := len((*url))
-	if ulen > 1 {
-		if (*url)[ulen-1:] == "/" {
-			*url = (*url)[:ulen-1]
-			cleanURL(url)
-		}
+	if ulen > 1 && (*url)[ulen-1:] == "/" {
+		*url = (*url)[:ulen-1]
+		cleanURL(url)
 	}
 }
 
@@ -113,10 +109,8 @@ func (m *Mux) GetRequestRoute(req *http.Request) string {
 	}
 
 	for _, s := range m.Routes[static] {
-		if len(req.URL.Path) >= s.Size {
-			if req.URL.Path[:s.Size] == s.Path {
-				return s.Path
-			}
+		if len(req.URL.Path) >= s.Size && req.URL.Path[:s.Size] == s.Path {
+			return s.Path
 		}
 	}
 

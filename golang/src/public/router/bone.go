@@ -51,18 +51,13 @@ func (m *Mux) Prefix(p string) *Mux {
 // DefaultServe is the default http request handler
 func (m *Mux) DefaultServe(rw http.ResponseWriter, req *http.Request) {
 	// Check if a route match
-	if !m.parse(rw, req) {
-		// Check if it's a static ressource
-		if !m.staticRoute(rw, req) {
-			// Check if the request path doesn't end with /
-			if !m.validate(rw, req) {
-				// Check if same route exists for another HTTP method
-				if !m.otherMethods(rw, req) {
-					m.HandleNotFound(rw, req)
-				}
-			}
-		}
+	// Check if it's a static ressource
+	// Check if the request path doesn't end with /
+	// Check if same route exists for another HTTP method
+	if m.parse(rw, req) || m.staticRoute(rw, req) || m.validate(rw, req) || m.otherMethods(rw, req){
+		return
 	}
+	m.HandleNotFound(rw, req)
 }
 
 // ServeHTTP pass the request to the serve method of Mux

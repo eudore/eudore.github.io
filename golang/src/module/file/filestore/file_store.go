@@ -12,6 +12,7 @@ import (
 )
 
 
+var dbconfig string = "root:@/Jass"
 var newstore	map[string]func(string) (Store,error)
 var storeproject	map[string]int
 var storeint	map[int]Store		// int as storetype
@@ -28,7 +29,7 @@ type Store interface {
 
 
 type PolicyInfo struct {
-	// Host string `json:"host"`
+	Host string `json:"host"`
 	Directory string `json:"dir"`
 	// Expire int64 `json:"expire,omitempty"`
 	Length int64 `json:"-"`
@@ -48,7 +49,7 @@ type FileInfo struct {
 }
 
 
-func get_size(file_bytes int64) string {
+func getsize(file_bytes int64) string {
 	var i     int
 	var units = [6]string{"B", "K", "M", "G", "T", "P"}
 	i = 0
@@ -73,7 +74,7 @@ func get_size(file_bytes int64) string {
 // 		return s,nil
 // 	}
 // 	var n int
-// 		if db, err := sql.Open("mysql","root:@/Jass");err==nil {
+// 		if db, err := sql.Open("mysql",dbconfig);err==nil {
 // 		defer db.Close()
 // 		db.QueryRow("SELECT Store FROM tb_file_project WHERE Path=?;",path).Scan(&n)
 // 		return n,nil
@@ -103,7 +104,7 @@ func NewFileStore(name, config string) (Store,error) {
 
 
 func Reload() error {
-	if db, err := sql.Open("mysql","root:@/Jass");err==nil {
+	if db, err := sql.Open("mysql",dbconfig);err==nil {
 		defer db.Close()
 		var id int
 		var store string
@@ -141,7 +142,7 @@ func Getstore(path string) (Store,error){
 }
 
 func GetPro(path string) (int,error) {
-	if db, err := sql.Open("mysql","root:@/Jass");err==nil {
+	if db, err := sql.Open("mysql",dbconfig);err==nil {
 		defer db.Close()
 		var n int
 		db.QueryRow("SELECT Store FROM tb_file_project WHERE Path=?;",path).Scan(&n)
@@ -152,7 +153,7 @@ func GetPro(path string) (int,error) {
 }
 
 func List(path string) []FileInfo{
-	if db, err := sql.Open("mysql","root:@/Jass");err==nil {
+	if db, err := sql.Open("mysql",dbconfig);err==nil {
 		defer db.Close()
 		var name string
 		var size int64
@@ -166,7 +167,7 @@ func List(path string) []FileInfo{
 				rows.Scan(&name,&size,&mt)
 				fi[i]=FileInfo{
 					Name: name,
-					Size: get_size(size),
+					Size: getsize(size),
 					Dir: false,
 					ModTime: mt,
 				}
@@ -184,7 +185,7 @@ func Add(p string,fs []string) {
 	if err!= nil {
 		return
 	}
-	if db, err := sql.Open("mysql","root:@/Jass");err==nil {
+	if db, err := sql.Open("mysql",dbconfig);err==nil {
 		defer db.Close()
 		for _,f := range fs {
 			if strings.HasPrefix(f,"/file/") {
@@ -199,12 +200,23 @@ func Add(p string,fs []string) {
 }
 	
 func Del(fs []string) {
-
+	if db, err := sql.Open("mysql",dbconfig);err==nil {
+		defer db.Close()
+		for _,f := range fs {
+			if strings.HasPrefix(f,"/file/") {
+				f = f[6:]
+			}
+			if stmt, err := db.Prepare("DELETE FROM tb_file_save WHERE Hash=?;");err==nil{
+				_, err = stmt.Exec(PathHash(f))
+				fmt.Println("filestore Add: ",f,err)
+			}
+		} 
+	}
 }
 
 
 func IsFile(path string) bool {
-	if db, err := sql.Open("mysql","root:@/Jass");err==nil {
+	if db, err := sql.Open("mysql",dbconfig);err==nil {
 		defer db.Close()
 		var n int = 0
 		db.QueryRow("SELECT ID FROM `tb_file_save` WHERE `Hash`=?;",PathHash(path)).Scan(&n)

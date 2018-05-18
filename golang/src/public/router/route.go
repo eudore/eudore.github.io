@@ -104,29 +104,27 @@ func (r *Route) Match(req *http.Request) bool {
 // variables if it matches
 func (r *Route) matchAndParse(req *http.Request) (bool, map[string]string) {
 	ss := strings.Split(req.URL.EscapedPath(), "/")
-	if r.matchRawTokens(&ss) {
-		if len(ss) == r.Token.Size || r.Atts&WC != 0 {
-			totalSize := len(r.Pattern)
-			if r.Atts&REGEX != 0 {
-				totalSize += len(r.Compile)
-			}
-
-			vars := make(map[string]string, totalSize)
-			for k, v := range r.Pattern {
-				vars[v], _ = url.QueryUnescape(ss[k])
-			}
-
-			if r.Atts&REGEX != 0 {
-				for k, v := range r.Compile {
-					if !v.MatchString(ss[k]) {
-						return false, nil
-					}
-					vars[r.Tag[k]], _ = url.QueryUnescape(ss[k])
-				}
-			}
-
-			return true, vars
+	if r.matchRawTokens(&ss) && (len(ss) == r.Token.Size || r.Atts&WC != 0) {
+		totalSize := len(r.Pattern)
+		if r.Atts&REGEX != 0 {
+			totalSize += len(r.Compile)
 		}
+
+		vars := make(map[string]string, totalSize)
+		for k, v := range r.Pattern {
+			vars[v], _ = url.QueryUnescape(ss[k])
+		}
+
+		if r.Atts&REGEX != 0 {
+			for k, v := range r.Compile {
+				if !v.MatchString(ss[k]) {
+					return false, nil
+				}
+				vars[r.Tag[k]], _ = url.QueryUnescape(ss[k])
+			}
+		}
+
+		return true, vars
 	}
 
 	return false, nil
@@ -134,14 +132,10 @@ func (r *Route) matchAndParse(req *http.Request) (bool, map[string]string) {
 
 func (r *Route) parse(rw http.ResponseWriter, req *http.Request) bool {
 	if r.Atts != 0 {
-		if r.Atts&SUB != 0 {
-			if len(req.URL.Path) >= r.Size {
-				if req.URL.Path[:r.Size] == r.Path {
-					req.URL.Path = req.URL.Path[r.Size:]
-					r.Handler.ServeHTTP(rw, req)
-					return true
-				}
-			}
+		if r.Atts&SUB != 0 && len(req.URL.Path) >= r.Size && req.URL.Path[:r.Size] == r.Path {
+			req.URL.Path = req.URL.Path[r.Size:]
+			r.Handler.ServeHTTP(rw, req)
+			return true
 		}
 
 		if ok, vars := r.matchAndParse(req); ok {
@@ -173,12 +167,8 @@ func (r *Route) matchRawTokens(ss *[]string) bool {
 
 func (r *Route) exists(rw http.ResponseWriter, req *http.Request) bool {
 	if r.Atts != 0 {
-		if r.Atts&SUB != 0 {
-			if len(req.URL.Path) >= r.Size {
-				if req.URL.Path[:r.Size] == r.Path {
-					return true
-				}
-			}
+		if r.Atts&SUB != 0 && len(req.URL.Path) >= r.Size && req.URL.Path[:r.Size] == r.Path {
+			return true
 		}
 
 		if ok, _ := r.matchAndParse(req); ok {

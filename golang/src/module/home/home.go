@@ -7,8 +7,9 @@ import (
 	"net/http"
 //	"strings"
 //	"io/ioutil" 
-//	"encoding/json"
+	"encoding/json"
 	"html/template"
+	"public/config"
 	"public/router"
 	"public/session"
 	"public/cache"
@@ -18,11 +19,14 @@ import (
 //	_ "github.com/go-sql-driver/mysql"
 )
 
+var conf *config.Config;
 var globalSessions *session.Manager;
 var globalCache cache.Cache;
 
 func init() {
-	sessionConfig := &session.ManagerConfig{CookieName: "gosessionid",Gclifetime: 3600,ProviderConfig: "127.0.0.1:12001"}
+	conf = config.Instance()
+	sessionConfig := &session.ManagerConfig{}
+	json.Unmarshal([]byte(conf.Session),sessionConfig)
 	globalSessions, _ = session.NewManager("memcache", sessionConfig)
 	go globalSessions.GC()
 	//var err error;

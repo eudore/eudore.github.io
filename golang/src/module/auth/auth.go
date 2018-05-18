@@ -3,22 +3,28 @@ package auth;
 import ( 
 	"bytes"
 	"net/http"
+	"encoding/json"
 	"html/template"
+	"public/config"
 	"public/router"
 	"public/session"
 	"public/log"
 )  
 
+var conf *config.Config;
 var globalSessions *session.Manager;
 
 func init() {
-	sessionConfig := &session.ManagerConfig{CookieName: "token",EnableSetCookie: true, Gclifetime: 3600, Maxlifetime: 3600, Secure: true, CookieLifeTime: 3600, ProviderConfig: "127.0.0.1:12001"}
+	conf = config.Instance()
+	sessionConfig := &session.ManagerConfig{}
+	json.Unmarshal([]byte(conf.Session),sessionConfig)
 	globalSessions, _ = session.NewManager("memcache", sessionConfig)
 	go globalSessions.GC()
 	mux := router.Instance()
-	mux.GetFunc("/auth/login", logshow)
-	mux.PostFunc("/auth/login", login)
-	mux.DeleteFunc("/auth/login", logout)
+	rlogin := "/auth/login"
+	mux.GetFunc(rlogin, logshow)
+	mux.PostFunc(rlogin, login)
+	mux.DeleteFunc(rlogin, logout)
 	mux.PostFunc("/auth/user/:name", usernew)
 	mux.GetFunc("/auth/projetc/new", projectnew)
 	mux.PostFunc("/auth/projetc/:name", projectnew)
