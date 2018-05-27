@@ -1,24 +1,26 @@
-package storesync;
+package sync;
 
 import (
-	"public/store/store"
+	"time"
+	"public/cache"
 )
 type Sync struct {
-	Master	*store.Store
-	Slave 	[]store.Store
+	Master	cache.Cache
+	Slave 	[]cache.Cache
 }
 
-func (s *Sync) Get(key string) interface{} {
+func (s *Sync) Get(key string) []byte {
 	return s.Master.Get(key)
 }
 
-func (s *Sync) GetMulti(keys []string) []interface{} {
-	return s.Master.GetMulti(key)	
+func (s *Sync) GetMulti(keys []string) [][]byte {
+	return s.Master.GetMulti(keys)	
 }
 
-func (s *Sync) Put(key string, val interface{}, timeout time.Duration) error {
-	if err := s.Master.Put(key,val,timeout);err != nil {
-		for k := range Slave {
+func (s *Sync) Put(key string, val []byte, timeout time.Duration) error {
+	err := s.Master.Put(key,val,timeout)
+	if err == nil {
+		for _,k := range s.Slave {
 			k.Put(key,val,timeout)
 		}
 	}
@@ -27,8 +29,9 @@ func (s *Sync) Put(key string, val interface{}, timeout time.Duration) error {
 
 // increase cached int value by key, as a counter.
 func (s *Sync) Delete(key string) error {
-	if err := s.Master.Delete(key);err != nil {
-		for k := range Slave {
+	err := s.Master.Delete(key)
+	if err == nil {
+		for _,k := range s.Slave {
 			k.Delete(key)
 		}
 	}	
@@ -36,8 +39,9 @@ func (s *Sync) Delete(key string) error {
 }
 
 func (s *Sync) Incr(key string) error {
-	if err := s.Master.Incr(key);err != nil {
-		for k := range Slave {
+	err := s.Master.Incr(key)
+	if err == nil {
+		for _,k := range s.Slave {
 			k.Incr(key)
 		}
 	}	
@@ -46,9 +50,10 @@ func (s *Sync) Incr(key string) error {
 
 // decrease cached int value by key, as a counter.
 func (s *Sync) Decr(key string) error {
-	if err := s.Master.StartAndGC(config);err != nil {
-		for k := range Slave {
-			k.StartAndGC(config)
+	err := s.Master.Decr(key)
+	if err == nil {
+		for _,k := range s.Slave {
+			k.Decr(key)
 		}
 	}	
 	return err
@@ -58,15 +63,22 @@ func (s *Sync) Decr(key string) error {
 func (s *Sync) IsExist(key string) bool {
 	return s.Master.IsExist(key)
 }
+
 // get all keys
 func (s *Sync) GetAllKeys() ([]string,error){
 	return s.Master.GetAllKeys()	
 }
 
+// get all keys
+func (s *Sync) Size() (int,error){
+	return s.Master.Size()	
+}
+
 // clear all cache.
 func (s *Sync) ClearAll() error {
-	if err := s.Master.ClearAll();err != nil {
-		for k := range Slave {
+	err := s.Master.ClearAll()
+	if err == nil {
+		for _, k := range s.Slave {
 			k.ClearAll()
 		}
 	}	
@@ -78,4 +90,10 @@ func (s *Sync) StartAndGC(config string) error {
 	return nil
 }
 
+func NewMemStore() cache.Cache {
+	return &Sync{}
+}
 
+func init() {
+	cache.Register("sync", NewMemStore)
+}

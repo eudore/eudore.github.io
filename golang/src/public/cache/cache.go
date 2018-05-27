@@ -1,34 +1,3 @@
-// Copyright 2014 beego Author. All Rights Reserved.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
-// Package cache provide a Cache interface and some implement engine
-// Usage:
-//
-// import(
-//   "github.com/astaxie/beego/cache"
-// )
-//
-// bm, err := cache.NewCache("memory", `{"interval":60}`)
-//
-// Use it like this:
-//
-//	bm.Put("astaxie", 1, 10 * time.Second)
-//	bm.Get("astaxie")
-//	bm.IsExist("astaxie")
-//	bm.Delete("astaxie")
-//
-//  more docs http://beego.me/docs/module/cache.md
 package cache
 
 import (
@@ -48,11 +17,11 @@ import (
 //	count := c.Get("counter").(int)
 type Cache interface {
 	// get cached value by key.
-	Get(key string) interface{}
+	Get(key string) []byte
 	// GetMulti is a batch version of Get.
-	GetMulti(keys []string) []interface{}
+	GetMulti(keys []string) [][]byte
 	// set cached value with key and expire time.
-	Put(key string, val interface{}, timeout time.Duration) error
+	Put(key string, val []byte, timeout time.Duration) error
 	// delete cached value by key.
 	Delete(key string) error
 	// increase cached int value by key, as a counter.
@@ -61,6 +30,10 @@ type Cache interface {
 	Decr(key string) error
 	// check if cached value exists or not.
 	IsExist(key string) bool
+	// get all keys
+	GetAllKeys() ([]string,error)
+	// get keys size
+	Size() (int,error)
 	// clear all cache.
 	ClearAll() error
 	// start gc routine based on config string settings.
@@ -88,10 +61,10 @@ func Register(name string, adapter Instance) {
 // NewCache Create a new cache driver by adapter name and config string.
 // config need to be correct JSON as string: {"interval":360}.
 // it will start gc automatically.
-func NewCache(adapterName, config string) (adapter Cache, err error) {
+func NewCache(adapterName string, config string) (adapter Cache, err error) {
 	instanceFunc, ok := adapters[adapterName]
 	if !ok {
-		err = fmt.Errorf("cache: unknown adapter name %q (forgot to import?)", adapterName)
+		err = fmt.Errorf("cache: unknown cache adapter name %q (forgot to import?)", adapterName)
 		return
 	}
 	adapter = instanceFunc()

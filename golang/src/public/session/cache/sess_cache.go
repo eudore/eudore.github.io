@@ -1,19 +1,20 @@
-package store
+package cache
 
 import (
-	"net/http"
 	"sync"
 	"time"
+	"net/http"
+	"encoding/json"
 
-	"public/store/store"
-	"public/store/session"
+	kv "public/cache"
+	"public/session"
 
 	//"github.com/astaxie/beego/session"
 	//"github.com/bradfitz/gomemcache/memcache"
 )
 
 var mempder = &MemProvider{}
-var client store.Store
+var client kv.Cache
 
 // SessionStore memcache session store
 type SessionStore struct {
@@ -69,43 +70,35 @@ func (rs *SessionStore) SessionRelease(w http.ResponseWriter) {
 		return
 	}
 	client.Put(rs.sid,b,time.Duration(rs.maxlifetime) * time.Second)
-	//item := memcache.Item{Key: rs.sid, Value: b, Expiration: int32(rs.maxlifetime)}
-	//client.Set(&item)
 }
 
 // MemProvider memcache session provider
 type MemProvider struct {
 	maxlifetime int64
-	//conninfo    []string
+	cachename 	string
 	conninfo 	string
-	poolsize    int
-	password    string
 }
 
 // SessionInit init memcache session
 // savepath like
 // e.g. 127.0.0.1:9090
 func (rp *MemProvider) SessionInit(maxlifetime int64, config string) (err error) {
+	var cf map[string]string
+	err = json.Unmarshal([]byte(config), &cf)
+	if err != nil {
+		return
+	}
+	cacheName := cf["cache"]
+
+	rp.cachename = cacheName
 	rp.maxlifetime = maxlifetime
-	//rp.conninfo = strings.Split(savePath, ";")
-	rp.conninfo=config
-	client,err = store.NewStore(config)
-	//client = memcache.New(rp.conninfo...)
+	rp.conninfo = config
+	client,err = kv.NewCache(cacheName,config)
 	return
 }
 
 // SessionRead read memcache session by sid
 func (rp *MemProvider) SessionRead(sid string) (session.Store, error) {
-	if client == nil {
-		if err := rp.connectInit(); err != nil {
-			return nil, err
-		}
-	}
-/*	item, err := client.Get(sid)
-	if err != nil && err == memcache.ErrCacheMiss {
-		rs := &SessionStore{sid: sid, values: make(map[interface{}]interface{}), maxlifetime: rp.maxlifetime}
-		return rs, nil
-	}*/
 	item := client.Get(sid)
 	var kv map[interface{}]interface{}
 	if len(item) == 0 {
@@ -123,11 +116,6 @@ func (rp *MemProvider) SessionRead(sid string) (session.Store, error) {
 
 // SessionExist check memcache session exist by sid
 func (rp *MemProvider) SessionExist(sid string) bool {
-	if client == nil {
-		if err := rp.connectInit(); err != nil {
-			return false
-		}
-	}
 	if item := client.Get(sid); len(item) == 0 {
 		return false
 	}
@@ -136,26 +124,10 @@ func (rp *MemProvider) SessionExist(sid string) bool {
 
 // SessionRegenerate generate new sid for memcache session
 func (rp *MemProvider) SessionRegenerate(oldsid, sid string) (session.Store, error) {
-	if client == nil {
-		if err := rp.connectInit(); err != nil {
-			return nil, err
-		}
-	}
 	var contain []byte
 	if item := client.Get(sid); len(item) == 0 {
-		// oldsid doesn't exists, set the new sid directly
-		// ignore error here, since if it return error
-		// the existed value will be 0
-/*		item.Key = sid
-		item.Value = []byte("")
-		item.Expiration = int32(rp.maxlifetime)*/
 		client.Put(sid,[]byte(""),time.Duration(rp.maxlifetime) * time.Second)
 	} else {
-/*		client.Delete(oldsid)
-		item.Key = sid
-		item.Expiration = int32(rp.maxlifetime)
-		client.Set(item)
-		contain = item.Value*/
 		client.Put(sid,item,time.Duration(rp.maxlifetime) * time.Second)
 		contain = item
 	}
@@ -177,19 +149,7 @@ func (rp *MemProvider) SessionRegenerate(oldsid, sid string) (session.Store, err
 
 // SessionDestroy delete memcache session by id
 func (rp *MemProvider) SessionDestroy(sid string) error {
-	if client == nil {
-		if err := rp.connectInit(); err != nil {
-			return err
-		}
-	}
-
 	return client.Delete(sid)
-}
-
-func (rp *MemProvider) connectInit() (err error) {
-	//client = memcache.New(rp.conninfo...)
-	client,err = store.NewStore(rp.conninfo)
-	return 
 }
 
 // SessionGC Impelment method, no used.
@@ -202,5 +162,5 @@ func (rp *MemProvider) SessionAll() int {
 }
 
 func init() {
-	session.Register("memcache", mempder)
+	session.Register("cache", mempder)
 }

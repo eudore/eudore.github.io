@@ -1,32 +1,3 @@
-// Copyright 2014 beego Author. All Rights Reserved.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
-// Package memcache for cache provider
-//
-// depend on github.com/bradfitz/gomemcache/memcache
-//
-// go install github.com/bradfitz/gomemcache/memcache
-//
-// Usage:
-// import(
-//   _ "github.com/astaxie/beego/cache/memcache"
-//   "github.com/astaxie/beego/cache"
-// )
-//
-//  bm, err := cache.NewCache("memcache", `{"conn":"127.0.0.1:11211"}`)
-//
-//  more docs http://beego.me/docs/module/cache.md
 package memcache
 
 import (
@@ -35,27 +6,27 @@ import (
 	"strings"
 	"time"
 
-	//"github.com/astaxie/beego/cache"
 	"public/cache"
-	"github.com/bradfitz/gomemcache/memcache"
+	"github.com/eudore/gomemcache/memcache"
 )
 
-// Cache Memcache adapter.
-type Cache struct {
+// Store Memstore adapter.
+type Store struct {
 	conn     *memcache.Client
 	conninfo []string
 }
 
-// NewMemCache create new memcache adapter.
-func NewMemCache() cache.Cache {
-	return &Cache{}
+// NewMemStore create new memcache adapter.
+func NewMemStore() cache.Cache {
+	return &Store{}
 }
 
 // Get get value from memcache.
-func (rc *Cache) Get(key string) interface{} {
+func (rc *Store) Get(key string) []byte {
 	if rc.conn == nil {
 		if err := rc.connectInit(); err != nil {
-			return err
+			return nil
+			//return err
 		}
 	}
 	if item, err := rc.conn.Get(key); err == nil {
@@ -65,15 +36,11 @@ func (rc *Cache) Get(key string) interface{} {
 }
 
 // GetMulti get value from memcache.
-func (rc *Cache) GetMulti(keys []string) []interface{} {
-	size := len(keys)
-	var rv []interface{}
+func (rc *Store) GetMulti(keys []string) [][]byte {
+	var rv [][]byte
 	if rc.conn == nil {
 		if err := rc.connectInit(); err != nil {
-			for i := 0; i < size; i++ {
-				rv = append(rv, err)
-			}
-			return rv
+			return nil
 		}
 	}
 	mv, err := rc.conn.GetMulti(keys)
@@ -83,32 +50,22 @@ func (rc *Cache) GetMulti(keys []string) []interface{} {
 		}
 		return rv
 	}
-	for i := 0; i < size; i++ {
-		rv = append(rv, err)
-	}
 	return rv
 }
 
 // Put put value to memcache.
-func (rc *Cache) Put(key string, val interface{}, timeout time.Duration) error {
+func (rc *Store) Put(key string, val []byte, timeout time.Duration) error {
 	if rc.conn == nil {
 		if err := rc.connectInit(); err != nil {
 			return err
 		}
 	}
-	item := memcache.Item{Key: key, Expiration: int32(timeout / time.Second)}
-	if v, ok := val.([]byte); ok {
-		item.Value = v
-	} else if str, ok := val.(string); ok {
-		item.Value = []byte(str)
-	} else {
-		return errors.New("val only support string and []byte")
-	}
+	item := memcache.Item{Key: key,Value: val, Expiration: int32(timeout / time.Second)}
 	return rc.conn.Set(&item)
 }
 
 // Delete delete value in memcache.
-func (rc *Cache) Delete(key string) error {
+func (rc *Store) Delete(key string) error {
 	if rc.conn == nil {
 		if err := rc.connectInit(); err != nil {
 			return err
@@ -118,7 +75,7 @@ func (rc *Cache) Delete(key string) error {
 }
 
 // Incr increase counter.
-func (rc *Cache) Incr(key string) error {
+func (rc *Store) Incr(key string) error {
 	if rc.conn == nil {
 		if err := rc.connectInit(); err != nil {
 			return err
@@ -129,7 +86,7 @@ func (rc *Cache) Incr(key string) error {
 }
 
 // Decr decrease counter.
-func (rc *Cache) Decr(key string) error {
+func (rc *Store) Decr(key string) error {
 	if rc.conn == nil {
 		if err := rc.connectInit(); err != nil {
 			return err
@@ -139,8 +96,30 @@ func (rc *Cache) Decr(key string) error {
 	return err
 }
 
+// Get All keys
+func (rc *Store) GetAllKeys() ([]string,error) {
+	if rc.conn == nil {
+		if err := rc.connectInit(); err != nil {
+			return nil,err
+		}
+	}
+	return rc.conn.GetAllKeys()
+
+}
+
+// Get keys size
+func (rc *Store) Size() (int,error) {
+	if rc.conn == nil {
+		if err := rc.connectInit(); err != nil {
+			return 0,err
+		}
+	}
+	return rc.conn.Size()
+
+}
+
 // IsExist check value exists in memcache.
-func (rc *Cache) IsExist(key string) bool {
+func (rc *Store) IsExist(key string) bool {
 	if rc.conn == nil {
 		if err := rc.connectInit(); err != nil {
 			return false
@@ -150,8 +129,8 @@ func (rc *Cache) IsExist(key string) bool {
 	return !(err != nil)
 }
 
-// ClearAll clear all cached in memcache.
-func (rc *Cache) ClearAll() error {
+// ClearAll clear all stored in memcache.
+func (rc *Store) ClearAll() error {
 	if rc.conn == nil {
 		if err := rc.connectInit(); err != nil {
 			return err
@@ -163,7 +142,7 @@ func (rc *Cache) ClearAll() error {
 // StartAndGC start memcache adapter.
 // config string is like {"conn":"connection info"}.
 // if connecting error, return.
-func (rc *Cache) StartAndGC(config string) error {
+func (rc *Store) StartAndGC(config string) error {
 	var cf map[string]string
 	json.Unmarshal([]byte(config), &cf)
 	if _, ok := cf["conn"]; !ok {
@@ -179,11 +158,11 @@ func (rc *Cache) StartAndGC(config string) error {
 }
 
 // connect to memcache and keep the connection.
-func (rc *Cache) connectInit() error {
+func (rc *Store) connectInit() error {
 	rc.conn = memcache.New(rc.conninfo...)
 	return nil
 }
 
 func init() {
-	cache.Register("memcache", NewMemCache)
+	cache.Register("memcache", NewMemStore)
 }
