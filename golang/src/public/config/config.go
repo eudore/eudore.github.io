@@ -8,33 +8,51 @@ import (
 )
  
 type Config struct {
-	Config      string      `comment:"config path"`
-	Workdir     string      `comment:"Current working directory"`
-	Command     string      `comment:"start command"`
-	Tempdir     string      `comment:"Template file dir"`
-	Pidfile     string      `comment:"Pid file path"`
-	Logfile     string      `comment:"Log file path"`
-	IP          string      `comment:"Listen Ip Addr"`
-	Port        int         `comment:"Server use port"`
-	Dbconfig    string      `comment:"MariaDB connect info"`
-	Memaddr     string      `comment:"Memcached connect addr and port"`
-	Session 	string
-	Const       map[string]*string
-	Enable      []string
-	Flag 		map[string]interface{}
-	Mode        map[string]interface{}
+	Config		string      `comment:"config path"`
+	Command		string      `comment:"start command"`
+	Workdir		string      `comment:"Current working directory"`
+	Tempdir		string      `comment:"Template file dir"`
+	Pidfile		string      `comment:"Pid file path"`
+	Logfile		string      `comment:"Log file path"`
+	Ip			string      `comment:"Listen Ip Addr" json:"IP"`
+	Port		int         `comment:"Server use port"`
+	Listen		*Listen		`comment:"Listen Info"`
+	App 		*App 		`comment:"app config"`
+	Dbconfig	string      `comment:"MariaDB connect info"`
+	Memcache	string      `comment:"Memcached connect addr and port"`
+	Session		string
+	Cache		string
+	Const		map[string]*string
+	Enable		[]string
+	Disable		[]string
+	Flag		map[string]interface{}	`json:"-"`
+	Mode		map[string]interface{}
+}
+
+type Listen struct {
+	Ip			string		`comment:"Listen Ip Addr" json:"IP"`
+	Port		int			`comment:"Server use port"`
+	Https		bool		`comment:"is https"`
+	Html2		bool		`comment:"is html2"`
+	Certfile	string		`comment:"cert file"`
+	Keyfile		string		`comment:"key file"`
+}
+
+type App struct {
+	Mysql 		string		`comment:"Mysql"`
+	Memcache 	string		`comment:"Memcached"`
+	Session		string		`comment:"Session"`
+	Cache		string		`comment:"Cache"`
 }
 
 func (c *Config) setconf() {
 	// set flag workdir 
-	if value, ok := c.Flag["workdir"].(string); ok {
-		conf.Workdir = value 
+	for _,value := range os.Args[1:] {
+		if strings.HasPrefix(value, "--workdir=") || strings.HasPrefix(value, "--config=") {
+			c.set(value[2:])
+		}
 	}
 	os.Chdir(conf.Workdir)
-	// set flag config
-	if value, ok := c.Flag["config"].(string); ok {
-		conf.Config = value
-	}	
 	// get config value
 	if cf, err := readconfig(c.Config);err == nil {
 		err := json.Unmarshal(cf,c)
@@ -48,72 +66,59 @@ func (c *Config) setconf() {
 
 func (c *Config) setmode() {	
 	// set flag mode
-	if value, ok := c.Flag["enable"].(string); ok {
-		conf.Enable = append(conf.Enable,strings.Split(value,",")...)
-		delete(c.Flag,"enable")
+	for _,value := range os.Args[1:] {
+		if strings.HasPrefix(value, "--enable=") || strings.HasPrefix(value, "--disable=") {
+			c.set(value[2:])
+		}
 	}
-	if value, ok := c.Flag["disable"].(string); ok {
-		var d []string
-		for _,ve := range conf.Enable {
-			b := true
-			for _,vd := range strings.Split(value,",") {
-				if ve==vd {
-					b = false
-					break
-				}
-			}
-			if b{
-				d=append(d,ve)
+
+	var d []string
+	for _,ve := range conf.Enable {
+		b := true
+		for _,vd := range c.Disable {
+			if ve==vd {
+				b = false
+				break
 			}
 		}
-		conf.Enable = d
+		if b{
+			d=append(d,ve)
+		}
 	}
+	conf.Enable = d
+	
 	// set mode config
 	for _,v := range conf.Enable {
 		if b,err := json.Marshal(conf.Mode[v]);err == nil && conf.Mode[v] != nil {
 			json.Unmarshal(b, &conf)
 		}
 	}
+	os.Chdir(conf.Workdir) 
 }
 
 func (c *Config) Reload() {
 	c.setconf()
 	c.setmode()
+	c.readenv()
+	c.readflag()
 }
 
 func NewConfig() *Config {
 	return &Config {
 		Workdir:	"/data/web",
-		Tempdir:	"/data/web/template",
-		Config:		"/data/web/config/conf.json",
+		Tempdir:	"template",
+		Config:		"config/conf.json",
 		Pidfile:	"/var/run/index.pid",
-		Logfile:	"/data/web/logs",
-		IP:			"",
-		Port:		8080,
+		Logfile:	"logs",
+		Port:		80,
 		Dbconfig:	"root:@/Jass",
-		Session:	`{"CookieName": "token","EnableSetCookie": true, "Gclifetime": 3600, "Maxlifetime": 3600, "Secure": true, "CookieLifeTime": 3600, "ProviderConfig": "127.0.0.1:12001"}`,
 	}
 }
 
 var conf *Config
 
-func Instance() *Config {
-	return conf
-}
-
 func init() {
-	// init flag
 	conf = NewConfig()
-	conf.Flag = readflag(os.Args[1:])
-	conf.Reload()
-	Reload()
-	if b,err := json.Marshal(conf.Flag);err == nil {
-		json.Unmarshal(b, &conf)
-	}
-	os.Chdir(conf.Workdir)  
-}
-
-func Reload() {
 	conf.Reload()
 }
 
@@ -128,6 +133,7 @@ func (c *Config) IsMode(m string) bool {
 	return false
 }
 
+
 func (c *Config) Getconst(k string) *string {
 	if v,ok := c.Const[k]; ok {
 		return v
@@ -136,6 +142,13 @@ func (c *Config) Getconst(k string) *string {
 }
 
 
+func Instance() *Config {
+	return conf
+}
+
+func Reload() {
+	conf.Reload()
+}
 
 func IsMode(m string) bool {
 	return conf.IsMode(m)
