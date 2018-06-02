@@ -1,7 +1,9 @@
 package main;
 
 import (
+	"os"
 	"fmt"
+	"time"
 	"net/http"
 	_ "github.com/go-sql-driver/mysql"
 	_ "public/cache/memcache"
@@ -27,7 +29,7 @@ func init() {
 	conf = config.Instance()
 	bm,err := cache.NewCache("memcache",`{"conn":"127.0.0.1:12001"}`)
 	if(err==nil){
-		bm.Put("weer/public","file",8640000)
+		bm.Put("weer/public",[]byte("file"),8640000 * time.Second)
 	}
 	sessionConfig := &session.ManagerConfig{
 		CookieName: "token",
@@ -36,9 +38,9 @@ func init() {
 		Maxlifetime: 3600,
 		Secure: true,
 		CookieLifeTime: 3600,
-		ProviderConfig: conf.Memaddr,
+		ProviderConfig: conf.Memcache,
 	}
-	globalSessions, _ = session.NewManager("memcache", sessionConfig)
+	globalSessions,_ = session.NewManager("memcache", sessionConfig)
 	go globalSessions.GC()
 }
 
@@ -52,20 +54,25 @@ func test(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	log.Json(conf)
 	// router
 	mux := router.Instance()
 	static := http.FileServer(http.Dir("/data/web/static"))
 	mux.Handle("/js/", static)
 	mux.Handle("/css/", static)
+	mux.Handle("/favicon.ico", static)
 	mux.HandleFunc("/", test);
 	// set reload
-	server.SetReload(func() {
-		log.Info("reload")
-		config.Reload()
-	})
+	server.SetReload(config.Reload)
+	server.SetOut(log.Info)
 	// start
 	err := server.Resolve(conf.Command,conf.Pidfile, func() error {
-		return server.ListenAndServe(fmt.Sprintf("%s:%d",conf.IP,conf.Port), mux)
+		if conf.Listen.Https {
+			return server.ListenAndServeTLS(fmt.Sprintf("%s:%d",conf.Ip,conf.Port),conf.Listen.Certfile,conf.Listen.Keyfile, mux)
+		}else {
+			return server.ListenAndServe(fmt.Sprintf("%s:%d",conf.Ip,conf.Port), mux)
+		}
+		
 	})
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)

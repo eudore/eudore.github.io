@@ -3,8 +3,8 @@
 package server
 
 import (
-	"net/http"
 	"time"
+	"net/http"
 )
 
 const (

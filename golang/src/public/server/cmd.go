@@ -17,17 +17,24 @@ const (
 
 type Callback func() error
 
-var reload func() = func() {}
+var reload = func() {}
+var out = func(args ...interface{}){
+	fmt.Println(args...)
+}
+
+func SetReload(call func()) {
+	reload = call
+}
+
+func SetOut(call func(...interface{})) {
+	out = call
+}
 
 type Cmd struct {
 	Cmd 	string
 	Pidfile	string
 	Pid		int
 	Handler Callback
-}
-
-func SetReload(call func()) {
-	reload = call
 }
 
 func Resolve(cmd ,pidfile string,handler Callback ) error {
@@ -45,16 +52,16 @@ func Resolve(cmd ,pidfile string,handler Callback ) error {
 		err = c.Daemon()
 	case "status":
 		err = c.Status()
-		fmt.Println("status is", err==nil)
+		out("status is", err==nil)
 	case "stop":
 		err = c.Stop()
-		fmt.Println("stop is", err==nil)
+		out("stop is", err==nil)
 	case "restart":
 		err = c.Restart()
-		fmt.Println("restart is", err==nil)
+		out("restart is", err==nil)
 	default:
 		err = errors.New("undefined command " + c.Cmd)
-		fmt.Println("undefined command ",c.Cmd)
+		out("undefined command ",c.Cmd)
 	}
 	return err
 }
@@ -70,7 +77,6 @@ func (c *Cmd) Daemon() error {
 		cmd := exec.Command(os.Args[0], os.Args[1:]...)
 		cmd.Env = append(os.Environ(),"IS_DEAMON=1")
 		cmd.Start()
-		fmt.Printf("%s [PID] %d running...\n", os.Args[0], cmd.Process.Pid)
 		os.Exit(0)
 		return nil
 	}else{
@@ -99,7 +105,7 @@ func (c *Cmd) Restart() error {
 func (c *Cmd) readpid() int {
 	file,err := os.Open(c.Pidfile)  
 	if err != nil {
-		fmt.Println(err)
+		out(err)
 	}
 	defer file.Close()  
 	id,err := ioutil.ReadAll(file)

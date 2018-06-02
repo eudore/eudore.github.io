@@ -6,14 +6,13 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"log"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
-	"strconv"
 	"syscall"
 	"time"
+	"golang.org/x/net/http2"
 )
 
 const (
@@ -24,20 +23,22 @@ const (
 
 // HTTP server that supported graceful shutdown or restart
 type Server struct {
-	httpServer *http.Server
-	listener   net.Listener
+	httpServer		*http.Server
+	listener		net.Listener
 
-	isGraceful   bool
-	signalChan   chan os.Signal
-	shutdownChan chan bool
+	handerr			error
+	isGraceful		bool
+	signalChan		chan os.Signal
+	shutdownChan	chan bool
 }
 
 func NewServer(addr string, handler http.Handler, readTimeout, writeTimeout time.Duration) *Server {
 	isGraceful := false
 	if os.Getenv(GRACEFUL_ENVIRON_KEY) != "" {
 		isGraceful = true
-	}
 
+	}
+		
 	return &Server{
 		httpServer: &http.Server{
 			Addr:    addr,
@@ -47,6 +48,7 @@ func NewServer(addr string, handler http.Handler, readTimeout, writeTimeout time
 			WriteTimeout: writeTimeout,
 		},
 
+		handerr:      nil,
 		isGraceful:   isGraceful,
 		signalChan:   make(chan os.Signal),
 		shutdownChan: make(chan bool),
@@ -69,6 +71,9 @@ func (srv *Server) ListenAndServe() error {
 }
 
 func (srv *Server) ListenAndServeTLS(certFile, keyFile string) error {
+	if os.Getenv("LISTEN_HTML2") != "" {
+		http2.ConfigureServer(srv.httpServer, &http2.Server{})
+	}
 	addr := srv.httpServer.Addr
 	if addr == "" {
 		addr = ":https"
@@ -100,13 +105,16 @@ func (srv *Server) ListenAndServeTLS(certFile, keyFile string) error {
 
 func (srv *Server) Serve() error {
 	go srv.handleSignals()
-	err := srv.httpServer.Serve(srv.listener)
+	go func(){
+		srv.handerr = srv.httpServer.Serve(srv.listener)
+		srv.shutdownChan <- true
+	}()
 
-	srv.logf("waiting for connections closed.")
+	out("waiting for connections closed.\n")
 	<-srv.shutdownChan
-	srv.logf("all connections closed.")
+	out("all connections closed.\n")
 
-	return err
+	return srv.handerr
 }
 
 func (srv *Server) getNetListener(addr string) (net.Listener, error) {
@@ -116,6 +124,7 @@ func (srv *Server) getNetListener(addr string) (net.Listener, error) {
 	if srv.isGraceful {
 		file := os.NewFile(GRACEFUL_LISTENER_FD, "")
 		ln, err = net.FileListener(file)
+		out("isGraceful",err)
 		if err != nil {
 			err = fmt.Errorf("net.FileListener error: %v", err)
 			return nil, err
@@ -144,17 +153,18 @@ func (srv *Server) handleSignals() {
 		sig = <-srv.signalChan
 		switch sig {
 		case syscall.SIGTERM:
-			srv.logf("received SIGTERM, graceful shutting down HTTP server.")
+			out("received SIGTERM, graceful shutting down HTTP server.")
 			srv.shutdownHTTPServer()
 		case syscall.SIGUSR1:
+			out("received SIGUSR1, graceful reloading HTTP server.")
 			reload()
 		case syscall.SIGUSR2:
-			srv.logf("received SIGUSR2, graceful restarting HTTP server.")
+			out("received SIGUSR2, graceful restarting HTTP server.")
 
 			if pid, err := srv.startNewProcess(); err != nil {
-				srv.logf("start new process failed: %v, continue serving.", err)
+				out("start new process failed: ", err,", continue serving.", err)
 			} else {
-				srv.logf("start new process successed, the new pid is %d.", pid)
+				out("start new process successed, the new pid is ", pid)
 				srv.shutdownHTTPServer()
 			}
 		default:
@@ -164,9 +174,9 @@ func (srv *Server) handleSignals() {
 
 func (srv *Server) shutdownHTTPServer() {
 	if err := srv.httpServer.Shutdown(context.Background()); err != nil {
-		srv.logf("HTTP server shutdown error: %v", err)
+		out("HTTP server shutdown error: ", err)
 	} else {
-		srv.logf("HTTP server shutdown success.")
+		out("HTTP server shutdown success.")
 		srv.shutdownChan <- true
 	}
 }
@@ -206,15 +216,4 @@ func (srv *Server) getTCPListenerFd() (uintptr, error) {
 		return 0, err
 	}
 	return file.Fd(), nil
-}
-
-func (srv *Server) logf(format string, args ...interface{}) {
-	pids := strconv.Itoa(os.Getpid())
-	format = "[pid " + pids + "] " + format
-
-	if srv.httpServer.ErrorLog != nil {
-		srv.httpServer.ErrorLog.Printf(format, args...)
-	} else {
-		log.Printf(format, args...)
-	}
 }
