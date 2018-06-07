@@ -3,86 +3,25 @@
 <head>
 	<title>File UpLoad Test</title>
 	<meta charset="UTF-8" />
-	<meta name="description" content="slick Login">
-	<meta name="author" content="Webdesigntuts+">
+	<meta name="description" content="file mangae">
+	<meta name="author" content="eudore">
 	<meta name="referrer" content="always">
 	<meta name="viewport" content="width=device-width,user-scalable=no">
-	<script src='/js/upload.js'></script>
+	<link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
+	<link href="/css/base.css" rel="stylesheet" type="text/css">
 	<script src='/js/hash.js'></script>
 	<script type="text/javascript">
 		"use strict";
-		var up = new window.Upload()
-		function upload(){
-			console.log(document.getElementById('upload').files)
-			up.add(document.getElementById('upload')).start()
-			return
-			var data = new FormData();
-			//var obj = document.querySelector('input[type="file"]').files
-			var obj = document.getElementById('upload').files
-			if(obj.length==0)
-				return
-			for(var i of obj){
-				data.append('file',i)
-			}
-			fetch(location.pathname,{ method: 'PUT',credentials: 'include', body: data}).then(function(response) {
-				if (!response.ok) throw new Error(response.statusText)
-				//document.getElementById('myframe').contentWindow.location.reload(true);
-				return response.json()
-			}).then(function(data){
-				//console.log(data)
-			}).catch(function(err) {
-				console.log(err)
-			})
+		function readfile(file,callback) {
+			var fileReader = new FileReader();
+			fileReader.readAsBinaryString(file);
+			fileReader.onload = function(evt) {
+				if (evt.target.readyState == FileReader.DONE) {
+					var result = evt.target.result;
+					callback(result,file)
+				}
+			};
 		}
-		
-/*		var host,policyBase64,accessid,signature,expire=0,callbackbody,key
-        function get_signature(){
-			var now = Date.parse(new Date())/1000
-			if(expire < now+3){  
-				fetch("http://47.52.173.119:8081/file/policy",{method: 'GET'}).then(
-					function(response) {
-					if (!response.ok) throw new Error(response.statusText)
-					return response.json()
-				}).then(function(obj){
-					console.log(obj)
-					host = obj['host']
-					policyBase64 = obj['policy']
-					accessid = obj['accessid']
-					signature = obj['signature']
-					expire = parseInt(obj['expire'])
-					callbackbody = obj['callback'] 
-					key = obj['dir']
-				}).catch(function(err) {
-					console.log(err)
-				})
-			}
-		}
-		function ossupload(){
-			var obj = document.getElementById('upload').files
-			if(obj.length==0)
-				return
-			for(var i of obj){
-				var data = new FormData();
-				data.append("name","s")
-				data.append("key",key+i.name)
-				data.append("policy",policyBase64)
-				data.append("OSSAccessKeyId",accessid)
-				data.append("success_action_status",200)
-				data.append("callback",callbackbody)
-				data.append("signature",signature)
-				data.append("file",i)
-				console.log(data)
-				fetch(host,{ method: 'POST', body: data}).then(function(response) {
-					if (!response.ok) throw new Error(response.statusText)
-					return response.text()
-				}).then(function(data){
-					console.log(data)
-				}).catch(function(err) {
-					console.log(err)
-				})
-			}
-
-		}*/
 		function filehash(file,range,size,callback) {
 			var fileReader1 = new FileReader();
 			fileReader1.readAsBinaryString(file.slice(range*size,(range+1)*size));
@@ -93,19 +32,13 @@
 				}
 			};
 		}
-		var jn={
-			"aa":"aa",
-			"bb":1
-		}
-		for(var i in jn){
-			console.log(i,jn[i])
-		}
 		console.log(document.location.href)
-		function ossupload(){
+		function upload(){
 			var obj = document.getElementById('upload').files
 			if(obj.length==0)
 				return
 			for(var i of obj){
+				// get policy
 				fetch(document.location.href+"/"+i.name,{ method: "POST",credentials: "same-origin"}).then(function(response) {
 					if (!response.ok) throw new Error(response.statusText)
 					return response.json()
@@ -113,6 +46,7 @@
 					console.log(r)
 					console.log(r.size)
 					if(r.size){
+						// use multi
 						console.log("multiple")
 						for(var n=0;n < i.size/r.size;n++){
 							console.log(i.slice(n*r.size,(n+1)*r.size))
@@ -123,6 +57,7 @@
 							})
 						}
 					}else{
+						// uoload file
 						var data = new FormData();
 						data.append("name",i.name)
 						for(var d in r){
@@ -145,32 +80,15 @@
 					console.log(err)
 				})
 			}
-
-		}
-		function testpost(){
-			var data = new FormData();
-			data.append("name","s")
-			fetch("http://47.52.173.119:8081/file/weer/public/test",{method: 'POST',body: data}).then(
-				function(response) {
-				if (!response.ok) throw new Error(response.statusText)
-				return response.text()
-			}).then(function(obj){
-				console.log(obj)
-			}).catch(function(err) {
-				console.log(err)
-			})
 		}
 	</script>
 </head>
 <body>
-	<header></header>
-	<div>
+	<header>{{template "header"}}</header>
+	<div class="container">
 		<div>
 			<input id="upload" type='file' multiple />
-			<button onclick="upload()">local提交</button>
-			<button onclick="testpost()">testpost</button>
-			<button onclick="">oss policy</button>
-			<button onclick="ossupload()">oss提交</button>
+			<button onclick="upload()">提交</button>
 		</div>
 		<div>
 			<table>
@@ -191,9 +109,6 @@
 			</table>
 		</div>
 	</div>
-	<!--
-	<iframe src="/upload" id="myframe" width="600" height="500">
-		<p>Your browser does not support iframes.</p>
-	</iframe>-->
+	<footer>{{template "footer"}}</footer>
 </body>
 </html>
