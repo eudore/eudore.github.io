@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+</head>
+<body>
+
+	<input id="upload" type='file' multiple />
+<script type="text/javascript">
+	
+		
+/*		var host,policyBase64,accessid,signature,expire=0,callbackbody,key
+        function get_signature(){
+			var now = Date.parse(new Date())/1000
+			if(expire < now+3){  
+				fetch("http://47.52.173.119:8081/file/policy",{method: 'GET'}).then(
+					function(response) {
+					if (!response.ok) throw new Error(response.statusText)
+					return response.json()
+				}).then(function(obj){
+					console.log(obj)
+					host = obj['host']
+					policyBase64 = obj['policy']
+					accessid = obj['accessid']
+					signature = obj['signature']
+					expire = parseInt(obj['expire'])
+					callbackbody = obj['callback'] 
+					key = obj['dir']
+				}).catch(function(err) {
+					console.log(err)
+				})
+			}
+		}
+		function ossupload(){
+			var obj = document.getElementById('upload').files
+			if(obj.length==0)
+				return
+			for(var i of obj){
+				var data = new FormData();
+				data.append("name","s")
+				data.append("key",key+i.name)
+				data.append("policy",policyBase64)
+				data.append("OSSAccessKeyId",accessid)
+				data.append("success_action_status",200)
+				data.append("callback",callbackbody)
+				data.append("signature",signature)
+				data.append("file",i)
+				console.log(data)
+				fetch(host,{ method: 'POST', body: data}).then(function(response) {
+					if (!response.ok) throw new Error(response.statusText)
+					return response.text()
+				}).then(function(data){
+					console.log(data)
+				}).catch(function(err) {
+					console.log(err)
+				})
+			}
+
+		}*/
+</script>
+</body>
+</html>
