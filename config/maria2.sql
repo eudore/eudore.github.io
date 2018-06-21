@@ -1,17 +1,66 @@
 CREATE DATABASE IF NOT EXISTS Jass DEFAULT CHARACTER SET utf8 collate utf8_general_ci;
 
-DROP TABLE IF EXISTS `tb_auth_user`;
-CREATE TABLE IF NOT EXISTS `tb_auth_user`(
+
+DROP TABLE IF EXISTS `tb_auth_oauth2_app`;
+CREATE TABLE IF NOT EXISTS `tb_auth_oauth2_app`(
+	`Name` VARCHAR(16) NOT NULL,
+	`ClientID` VARCHAR(20) NOT NULL,
+	`ClientSecret` VARCHAR(40) NOT NULL,
+	`Callback` VARCHAR(100) NOT NULL,
+	`Scopes` VARCHAR(200) NOT NULL
+);
+
+DROP TABLE IF EXISTS `tb_auth_oauth2_code`;
+CREATE TABLE IF NOT EXISTS `tb_auth_oauth2_code`(
+    Codo VARCHAR(32) PRIMARY KEY COMMENT '授权码',
+    Redirect_uri VARCHAR(200) NOT NULL COMMENT '重定向URI',
+    ClientID VARCHAR(20) NOT NULL COMMENT '客户端ID',
+    Expires TIMESTAMP NOT NULL COMMENT '过期时间'
+)
+
+DROP TABLE IF EXISTS `tb_auth_oauth2_pass`;
+CREATE TABLE IF NOT EXISTS `tb_auth_oauth2_pass`(
+	`Login` VARCHAR(32) PRIMARY KEY COMMENT '登录用户',
+	`Pass` VARCHAR(64) NOT NULL COMMENT '登录密码Hash',
+	`UID` INT UNSIGNED NOT NULL COMMENT '认证ID'
+)
+
+DROP TABLE IF EXISTS `tb_auth_oauth2_source`;
+CREATE TABLE IF NOT EXISTS `tb_auth_oauth2_source`(
+	`Name` VARCHAR(16) NOT NULL UNIQUE COMMENT '认证方式',
+	`App` VARCHAR(16) COMMENT '认证用用名称',
+	`ClientID` VARCHAR(80) NOT NULL COMMENT 'ID',
+	`ClientSecret` VARCHAR(80) NOT NULL COMMENT 'Secret'
+);
+
+DROP TABLE IF EXISTS `tb_auth_oauth2_login`;
+CREATE TABLE IF NOT EXISTS `tb_auth_oauth2_login`(
+	`Source` INT UNSIGNED NOT NULL COMMENT '认证方式',
+	`OID` CHAR(21) NOT NULL COMMENT '认证ID',
+	`UID` INT UNSIGNED NOT NULL COMMENT '用户ID',
+	`Name` VARCHAR(100) COMMENT '认证名称',
+	`Stats` INT COMMENT '认证状态 0正常 1注册'
+);
+
+DROP TABLE IF EXISTS `tb_auth_user_info`;
+CREATE TABLE IF NOT EXISTS `tb_auth_user_info`(
 	`UID` int UNSIGNED PRIMARY KEY Auto_Increment,
 	`Name` VARCHAR(16) NOT NULL UNIQUE COMMENT '',
-	`User` VARCHAR(50) NOT NULL UNIQUE,
-	`Pass` CHAR(32) NOT NULL,
 	`Status` INT UNSIGNED DEFAULT 0,
 	`Level` INT UNSIGNED DEFAULT 0,
 	`LoginIP` INT UNSIGNED DEFAULT 0,
 	`LoginTime` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 	`SiginTime` DATE
 );
+
+DROP TABLE IF EXISTS `tb_auth_user_token`;
+CREATE TABLE IF NOT EXISTS `tb_auth_user_token`(
+	Token VARCHAR(32) PRIMARY KEY COMMENT 'Token',
+	Refresh VARCHAR(32) COMMENT '更新令牌',
+	Scope int COMMENT '权限范围',
+    Expires TIMESTAMP NOT NULL COMMENT '过期时间'
+)
+
 DROP TABLE IF EXISTS `tb_auth_project`;
 CREATE TABLE IF NOT EXISTS `tb_auth_project`(
 	`PID` INT UNSIGNED PRIMARY KEY Auto_Increment,
@@ -78,6 +127,7 @@ CREATE TABLE IF NOT EXISTS `tb_note_save`(
 	`Status` INT UNSIGNED DEFAULT 0,
 	`UID` int UNSIGNED DEFAULT 0,
 	`Uri` VARCHAR(100),
+	`Format` CHAR(6),
 	`Name` text,
 	`Title` VARCHAR(50),
 	`Content` TEXT,

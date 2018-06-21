@@ -16,7 +16,7 @@
 	</div>
 	</div>
 
-	<dir class="right">
+	<div class="right">
 	<div class="header-user">
 		<ul>
 			<li><a href="/admin/">+</a></li>
@@ -27,13 +27,17 @@
 				<input type="text" class="form-control" placeholder="Search">
 			</li>
 			<li>
-				<a href="/auth/login">Log in</a>
+				{{if .User}}
+					<a href="/auth/">{{.User.Name}}</a>
+				{{else}}
+					<a href="/auth/user/auth">Log in</a>
+				{{end}}
 			</li>
 		</ul>
 		
 		
 	</div>
-	</dir>
+	</div>
 </header>	
 {{end}}
 

@@ -1,13 +1,16 @@
 *.pyc
 *.log
 *.min.js
+*sonar-project.properties
+*.scannerwork
 sftp-config.json
 /config/note.txt
 /config/conf.json
 /config/nginx/openssl-*
-/golang/index
 /golang/src/index
 /golang/src/gomemcache/
+/golang/src/gateway/
+/golang/src/search/
 /python/tasks.txt
 /download/
 /upload/

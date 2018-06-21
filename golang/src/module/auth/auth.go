@@ -9,6 +9,8 @@ import (
 	"public/router"
 	"public/session"
 	"public/log"
+	"module/auth/oauth2"
+	"module/auth/user"
 )  
 
 var conf *config.Config;
@@ -17,23 +19,36 @@ var globalSessions *session.Manager;
 func init() {
 	conf = config.Instance()
 	sessionConfig := &session.ManagerConfig{}
-	json.Unmarshal([]byte(conf.Session),sessionConfig)
+	json.Unmarshal([]byte(conf.App.Session),sessionConfig)
 	globalSessions, _ = session.NewManager("memcache", sessionConfig)
 	go globalSessions.GC()
-	mux := router.Instance()
-	rlogin := "/auth/login"
+	
+	mux := router.New()
+	rlogin := "/login"
 	mux.GetFunc(rlogin, logshow)
 	mux.PostFunc(rlogin, login)
 	mux.DeleteFunc(rlogin, logout)
-	mux.PostFunc("/auth/user/:name", usernew)
-	mux.GetFunc("/auth/projetc/new", projectnew)
-	mux.PostFunc("/auth/projetc/:name", projectnew)
-	mux.PostFunc("/auth/projetc/:name/snippets", projectnew)
-	mux.PostFunc("/auth/projetc/:name/members", projectnew)
-	mux.PostFunc("/auth/projetc/:name/members/:user", projectnew)
-	mux.PostFunc("/auth/manage/:name", projectnew)
-	mux.PostFunc("/auth/share/:name", projectnew)
-	mux.GetFunc("/auth/", auth)
+	mux.PostFunc("/user/:name", usernew)
+	mux.GetFunc("/projetc/new", projectnew)
+	mux.PostFunc("/projetc/:name", projectnew)
+	mux.PostFunc("/projetc/:name/snippets", projectnew)
+	mux.PostFunc("/projetc/:name/members", projectnew)
+	mux.PostFunc("/projetc/:name/members/:user", projectnew)
+	mux.PostFunc("/manage/:name", projectnew)
+	mux.PostFunc("/share/:name", projectnew)
+	mux.GetFunc("/", auth)
+
+	mux.GetFunc("/user/auth",user.Auth)
+	mux.PostFunc("/user/auth",user.Authpass)
+	mux.GetFunc("/user/signup",user.Signup)
+	mux.PostFunc("/user/signup",user.SignupSubmit)
+	mux.GetFunc("/user/login",user.Login)
+	mux.GetFunc("/user/logout",user.Logout)
+	r1,r2 := oauth2.GetRouter()
+	mux.SubRoute("/oauth2/login",r1)
+	mux.SubRoute("/oauth2/callback",r2)
+
+	router.Instance().SubRoute("/auth",mux)
 }
 
 func auth(w http.ResponseWriter, r *http.Request) {

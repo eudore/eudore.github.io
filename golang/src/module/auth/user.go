@@ -18,7 +18,7 @@ func usernew(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
 		user := r.PostFormValue("user")
 		pass := r.PostFormValue("pass")
-		if stmt, err := db.Prepare("INSERT `tb_auth_user`(Name,User,Pass) VALUES(?,?,?);");err==nil{
+		if stmt, err := db.Prepare("INSERT `tb_auth_user_info`(Name,User,Pass) VALUES(?,?,?);");err==nil{
 			_, err = stmt.Exec(name,user,pass)	
 			w.Write([]byte(fmt.Sprintf("{\"result\":%t}",err==nil)))
 			return

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title></title>
+	<meta name="description" content="wejass.com sign up">
+	<meta name="author" content="Webdesigntuts+">
+	<meta name="referrer" content="always">
+	<meta name="viewport" content="width=device-width,user-scalable=no">
+	<link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
+	<link href='/css/base.css' rel="stylesheet" type="text/css">
+	<script src='/js/zepto.min.js' async></script>
+</head>
+<body>
+	{{template "header"}}
+	<div>
+		<table>
+			<tbody>
+				<tr>
+					<td>认证来源</td>
+					<td>{{.Source}}</td>
+				</tr>
+				<tr>
+					<td>认证用户</td>
+					<td>{{.AuthInfo.Name}}</td>
+				</tr>
+				<tr>
+					<td>认证邮件</td>
+					<td>{{.AuthInfo.Email}}</td>
+				</tr>
+				<tr>
+					<td>创建用户</td>
+					<td>
+						<input id="username" type="text" name="" value="{{.AuthInfo.Name}}" placeholder="your name">
+					</td>
+				</tr>
+			</tbody>
+		</table>
+		
+		<button onclick="submit()">确认</button>
+		<button>取消</button>
+	</div>
+	<script>
+		function submit() {
+			fetch('/auth/user/signup?'+$("#username").val(),{ method: 'POST',credentials: 'include'}).then(function(response) {
+				if (!response.ok) throw new Error(response.statusText)
+				return response.json()
+			}).then(function(data){
+
+			}).catch(function(err) {
+				console.log(err)
+			})
+		}
+	</script>
+</body>
+</html>

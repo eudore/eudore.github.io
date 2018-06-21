@@ -14,35 +14,14 @@ type Config struct {
 	Tempdir		string      `comment:"Template file dir"`
 	Pidfile		string      `comment:"Pid file path"`
 	Logfile		string      `comment:"Log file path"`
-	Ip			string      `comment:"Listen Ip Addr" json:"IP"`
-	Port		int         `comment:"Server use port"`
 	Listen		*Listen		`comment:"Listen Info"`
 	App 		*App 		`comment:"app config"`
-	Dbconfig	string      `comment:"MariaDB connect info"`
-	Memcache	string      `comment:"Memcached connect addr and port"`
-	Session		string
-	Cache		string
+	Test 		bool
 	Const		map[string]*string
 	Enable		[]string
 	Disable		[]string
-	Flag		map[string]interface{}	`json:"-"`
+	//Flag		map[string]interface{}	`json:"-"`
 	Mode		map[string]interface{}
-}
-
-type Listen struct {
-	Ip			string		`comment:"Listen Ip Addr" json:"IP"`
-	Port		int			`comment:"Server use port"`
-	Https		bool		`comment:"is https"`
-	Html2		bool		`comment:"is html2"`
-	Certfile	string		`comment:"cert file"`
-	Keyfile		string		`comment:"key file"`
-}
-
-type App struct {
-	Mysql 		string		`comment:"Mysql"`
-	Memcache 	string		`comment:"Memcached"`
-	Session		string		`comment:"Session"`
-	Cache		string		`comment:"Cache"`
 }
 
 func (c *Config) setconf() {
@@ -110,8 +89,6 @@ func NewConfig() *Config {
 		Config:		"config/conf.json",
 		Pidfile:	"/var/run/index.pid",
 		Logfile:	"logs",
-		Port:		80,
-		Dbconfig:	"root:@/Jass",
 	}
 }
 
@@ -120,6 +97,10 @@ var conf *Config
 func init() {
 	conf = NewConfig()
 	conf.Reload()
+	if conf.Test {
+		indent,_ := json.MarshalIndent(conf, "", "\t")
+		fmt.Println(string(indent))	
+	}
 }
 
 

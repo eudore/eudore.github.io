@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>WE Jass Login</title>
+	<meta name="description" content="wejass.com Login">
+	<meta name="author" content="Webdesigntuts+">
+	<meta name="referrer" content="always">
+	<meta name="viewport" content="width=device-width,user-scalable=no">
+	<link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
+	<link href='/css/base.css' rel="stylesheet" type="text/css">
+	<script src='/js/hash.js' async></script>
+	<!-- <link href="/css/slick-login.css" rel="stylesheet" type="text/css"> -->
+	<style type="text/css">
+#slick-login {
+	width: 220px;
+	height: 155px;
+	/*position: absolute;*/
+/*    left: 50%;
+	top: 50%;*/
+/*    margin-left: -110px;
+	margin-top: -75px;*/
+ 
+	-webkit-animation: login 1s ease-in-out;
+	-moz-animation: login 1s ease-in-out;
+	-ms-animation: login 1s ease-in-out;
+	-o-animation: login 1s ease-in-out;
+	animation: login 1s ease-in-out;
+}
+ 
+#slick-login label {
+	display: none;
+}
+ 
+.placeholder {
+	color: #444;
+}
+#slick-login input[type="text"],#slick-login input[type="password"] {
+	width: 100%;
+	height: 40px;
+	positon: relative;
+	margin-top: 7px;
+	font-size: 14px;
+	color: #444;
+	outline: none;
+	border: 1px solid rgba(0, 0, 0, .49);
+ 
+	padding-left: 20px;
+	 
+	-webkit-background-clip: padding-box;
+	-moz-background-clip: padding-box;
+	background-clip: padding-box;
+	border-radius: 6px;
+ 
+	background-image: -webkit-linear-gradient(bottom, #FFFFFF 0%, #F2F2F2 100%);
+	background-image: -moz-linear-gradient(bottom, #FFFFFF 0%, #F2F2F2 100%);
+	background-image: -o-linear-gradient(bottom, #FFFFFF 0%, #F2F2F2 100%);
+	background-image: -ms-linear-gradient(bottom, #FFFFFF 0%, #F2F2F2 100%);
+	background-image: linear-gradient(bottom, #FFFFFF 0%, #F2F2F2 100%);
+ 
+	-webkit-box-shadow: inset 0px 2px 0px #d9d9d9;
+	box-shadow: inset 0px 2px 0px #d9d9d9;
+ 
+	-webkit-transition: all .1s ease-in-out;
+	-moz-transition: all .1s ease-in-out;
+	-o-transition: all .1s ease-in-out;
+	-ms-transition: all .1s ease-in-out;
+	transition: all .1s ease-in-out;
+}
+ 
+#slick-login input[type="text"]:focus,#slick-login input[type="password"]:focus {
+	-webkit-box-shadow: inset 0px 2px 0px #a7a7a7;
+	box-shadow: inset 0px 2px 0px #a7a7a7;
+}
+ 
+#slick-login input:first-child {
+	margin-top: 0px;
+}
+ 
+#slick-login input[type="button"] {
+	width: 100%;
+	height: 50px;
+	margin-top: 7px;
+	color: #fff;
+	font-size: 18px;
+	font-weight: bold;
+	text-shadow: 0px -1px 0px #5b6ddc;
+	outline: none;
+	border: 1px solid rgba(0, 0, 0, .49);
+ 
+	-webkit-background-clip: padding-box;
+	-moz-background-clip: padding-box;
+	background-clip: padding-box;
+	border-radius: 6px;
+ 
+	background-color: #5466da;
+	background-image: -webkit-linear-gradient(bottom, #5466da 0%, #768ee4 100%);
+	background-image: -moz-linear-gradient(bottom, #5466da 0%, #768ee4 100%);
+	background-image: -o-linear-gradient(bottom, #5466da 0%, #768ee4 100%);
+	background-image: -ms-linear-gradient(bottom, #5466da 0%, #768ee4 100%);
+	background-image: linear-gradient(bottom, #5466da 0%, #768ee4 100%);
+	 
+	-webkit-box-shadow: inset 0px 1px 0px #9ab1ec;
+	box-shadow: inset 0px 1px 0px #9ab1ec;
+	 
+	cursor: pointer;
+ 
+	-webkit-transition: all .1s ease-in-out;
+	-moz-transition: all .1s ease-in-out;
+	-o-transition: all .1s ease-in-out;
+	-ms-transition: all .1s ease-in-out;
+	transition: all .1s ease-in-out;
+}
+ 
+#slick-login input[type="button"]:hover {
+	background-color: #5f73e9;
+	background-image: -webkit-linear-gradient(bottom, #5f73e9 0%, #859bef 100%);
+	background-image: -moz-linear-gradient(bottom, #5f73e9 0%, #859bef 100%);
+	background-image: -o-linear-gradient(bottom, #5f73e9 0%, #859bef 100%);
+	background-image: -ms-linear-gradient(bottom, #5f73e9 0%, #859bef 100%);
+	background-image: linear-gradient(bottom, #5f73e9 0%, #859bef 100%);
+ 
+	-webkit-box-shadow: inset 0px 1px 0px #aab9f4;
+	box-shadow: inset 0px 1px 0px #aab9f4;
+	margin-top: 10px;
+}
+ 
+#slick-login input[type="button"]:active {
+	background-color: #7588e1;
+	background-image: -webkit-linear-gradient(bottom, #7588e1 0%, #7184df 100%);
+	background-image: -moz-linear-gradient(bottom, #7588e1 0%, #7184df 100%);
+	background-image: -o-linear-gradient(bottom, #7588e1 0%, #7184df 100%);
+	background-image: -ms-linear-gradient(bottom, #7588e1 0%, #7184df 100%);
+	background-image: linear-gradient(bottom, #7588e1 0%, #7184df 100%);
+ 
+	-webkit-box-shadow: inset 0px 1px 0px #93a9e9;
+	box-shadow: inset 0px 1px 0px #93a9e9;
+}
+.oauth2 {
+	width: 300px;
+}
+.oauth2-line fieldset{
+	border: 0;
+	border-top: 1px solid #e0e0e0;
+}
+.oauth2-other li {
+	float:left;
+	list-style:none; 
+	}
+.oauth2-other svg{
+	width: 36px;
+	height: 36px;
+}
+
+	</style>
+</head>
+<body>
+
+	{{template "header"}}
+	<div class="oauth2">
+	<div class="oauth2-login">
+		
+		<form id="slick-login">
+			<label for="name">username</label>
+			<input type="text" name="name" class="placeholder" placeholder="username">
+			<label for="pass">password</label>
+			<input type="password" name="pass" class="placeholder" placeholder="password">
+			<label for="code">code</label>
+			<input type="text" name="code" class="placeholder" placeholder="code" style="display:none">
+			<input type="button" value="Sign in" onclick="auth()">
+		</form>
+	</div>
+	<div class="oauth2-line">
+		<fieldset>
+			<legend align="center">其他方式登录</legend>
+		</fieldset>
+	</div>
+	<div class="oauth2-other">
+	<ul>
+		<li>
+			<a href="/auth/oauth2/login/eudore">
+				<svg viewBox="0 0 16 16" version="1.1" aria-hidden="true" alt="eudore">
+					<path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
+				</svg>
+			</a>
+		</li>
+		<li>
+			<a href="/auth/oauth2/login/github">
+				<svg viewBox="0 0 16 16" version="1.1" aria-hidden="true">
+					<path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
+				</svg>
+			</a>
+		</li>
+		<li>
+			<a href="/auth/oauth2/login/google">
+				<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+					<g fill="none" fill-rule="evenodd">
+					<path d="M482.56 261.36c0-16.73-1.5-32.83-4.29-48.27H256v91.29h127.01c-5.47 29.5-22.1 54.49-47.09 71.23v59.21h76.27c44.63-41.09 70.37-101.59 70.37-173.46z" fill="#4285f4"/>
+					<path d="M256 492c63.72 0 117.14-21.13 156.19-57.18l-76.27-59.21c-21.13 14.16-48.17 22.53-79.92 22.53-61.47 0-113.49-41.51-132.05-97.3H45.1v61.15c38.83 77.13 118.64 130.01 210.9 130.01z" fill="#34a853"/>
+					<path d="M123.95 300.84c-4.72-14.16-7.4-29.29-7.4-44.84s2.68-30.68 7.4-44.84V150.01H45.1C29.12 181.87 20 217.92 20 256c0 38.08 9.12 74.13 25.1 105.99l78.85-61.15z" fill="#fbbc05"/>
+					<path d="M256 113.86c34.65 0 65.76 11.91 90.22 35.29l67.69-67.69C373.03 43.39 319.61 20 256 20c-92.25 0-172.07 52.89-210.9 130.01l78.85 61.15c18.56-55.78 70.59-97.3 132.05-97.3z" fill="#ea4335"/>
+					<path d="M20 20h472v472H20V20z"/>
+				</g>
+				</svg>
+			</a>
+		</li>
+		<li>
+			<a href="/auth/oauth2/login/gitlab">
+				<svg viewBox="0 0 36 36">
+					<path fill="#e24329" d="M2 14l9.38 9v-9l-4-12.28c-.205-.632-1.176-.632-1.38 0z"></path>
+					<path fill="#e24329" d="M34 14l-9.38 9v-9l4-12.28c.205-.632 1.176-.632 1.38 0z"></path>
+					<path fill="#e24329" d="M18,34.38 3,14 33,14 Z"></path>
+					<path fill="#fc6d26" d="M18,34.38 11.38,14 2,14 6,25Z"></path>
+					<path fill="#fc6d26" d="M18,34.38 24.62,14 34,14 30,25Z"></path>
+					<path fill="#fca326" d="M2 14L.1 20.16c-.18.565 0 1.2.5 1.56l17.42 12.66z"></path>
+					<path fill="#fca326" d="M34 14l1.9 6.16c.18.565 0 1.2-.5 1.56L18 34.38z"></path>
+				</svg>
+			</a>
+		</li>
+	</ul>
+		
+	</div>
+</div>
+	<script type="text/javascript">
+		"use strict";
+		var input=document.getElementsByClassName("oauth2-login")[0].getElementsByTagName('input')
+		input[1].onkeydown=function(e){
+			var keyCode = e.keyCode || e.which || e.charCode;
+			if(keyCode == 13){
+				auth()
+			}
+		}; 
+		function auth(){
+			var data = new URLSearchParams()
+			data.append('login',input[0].value)
+			data.append('pass',input[1].value.SHA256())
+			input[2].value && data.append('code',input[2].value)
+			fetch('/auth/user/auth',{ method: 'POST',credentials: 'include', body: data}).then(function(response) {
+				if (!response.ok) throw new Error(response.statusText)
+				return response.json()
+			}).then(function(data){
+				console.log(data)
+			}).catch(function(err) {
+				console.log(err)
+			})
+		}
+		/*
+		function login(){
+			var data = {
+				name: '11',
+				passwd: '22'
+			}
+			var searchParams = new URLSearchParams()
+			searchParams.append('name','sssss')
+			searchParams.append('passwd','ssssspwd')
+			var form = new FormData();
+			form.append('name','sssss')
+			form.append('passwd','ssssspwd')
+			console.log(new FormData(document.getElementById('slick-login')) )
+			var f = fetch('/go/sss',{ method: 'POST',credentials: 'include', //cache: 'no-cache',
+				//headers: new Headers({'Content-Type': 'text/json' }),
+				//body: JSON.stringify(data)
+				headers: new Headers({'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' }),
+				body: searchParams//new FormData(document.getElementById('slick-login'))
+			}).then(function(response) {
+					if (!response.ok) throw new Error(response.statusText)
+					console.log(response)
+				return response.text()
+				}).catch(function(err) {
+					console.log(err)
+				})
+		}
+		*/
+	</script>
+</body>
+</html>

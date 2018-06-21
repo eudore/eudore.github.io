@@ -13,6 +13,15 @@ var (
 	errType 	= 	errors.New("undefined type")
 )
 
+type errorConfig struct {
+	data 		string
+	err			error
+}
+
+func (e *errorConfig) Error() string {
+	return e.err.Error()+e.data
+}
+
 func (c *Config) help() {
 	getcomment(c,"  --")
 	fmt.Println("  --help\t\tShow help")

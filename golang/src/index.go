@@ -14,6 +14,7 @@ import (
 	"public/session"
 	"public/cache"
 	"public/router"
+	_ "module/global"
 	_ "module/home"
 	_ "module/auth"
 	_ "module/note"
@@ -32,13 +33,13 @@ func init() {
 		bm.Put("weer/public",[]byte("file"),8640000 * time.Second)
 	}
 	sessionConfig := &session.ManagerConfig{
-		CookieName: "token",
+		CookieName: "s",
 		EnableSetCookie: true,
 		Gclifetime: 3600,
 		Maxlifetime: 3600,
 		Secure: true,
 		CookieLifeTime: 3600,
-		ProviderConfig: conf.Memcache,
+		ProviderConfig: conf.App.Memcache,
 	}
 	globalSessions,_ = session.NewManager("memcache", sessionConfig)
 	go globalSessions.GC()
@@ -54,7 +55,6 @@ func test(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	log.Json(conf)
 	// router
 	mux := router.Instance()
 	static := http.FileServer(http.Dir("/data/web/static"))
@@ -66,11 +66,14 @@ func main() {
 	server.SetReload(config.Reload)
 	server.SetOut(log.Info)
 	// start
-	err := server.Resolve(conf.Command,conf.Pidfile, func() error {
+	err := server.Parse(conf.Command,conf.Pidfile, func() error {
+		if conf.Listen.Html2 {
+			os.Setenv("LISTEN_HTML2","1")
+		}
 		if conf.Listen.Https {
-			return server.ListenAndServeTLS(fmt.Sprintf("%s:%d",conf.Ip,conf.Port),conf.Listen.Certfile,conf.Listen.Keyfile, mux)
+			return server.ListenAndServeTLS(conf.Listen.Addr(),conf.Listen.Certfile,conf.Listen.Keyfile, mux)
 		}else {
-			return server.ListenAndServe(fmt.Sprintf("%s:%d",conf.Ip,conf.Port), mux)
+			return server.ListenAndServe(conf.Listen.Addr(), mux)
 		}
 		
 	})
