@@ -34,6 +34,8 @@ https://github.com/astaxie/beego
 
 https://github.com/go-zoo/bone
 
+https://github.com/dgrijalva/jwt-go
+
 https://github.com/tabalt/gracehttp
 
 https://github.com/gansidui/gose
@@ -41,6 +43,8 @@ https://github.com/gansidui/gose
 https://golang.org/pkg/log/
 
 https://github.com/wangfupeng1988/wangEditor
+
+https://github.com/pandao/editor.md
 
 https://github.com/PrismJS/prism
 
