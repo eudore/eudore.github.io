@@ -11,10 +11,6 @@ import (
 )
 
 
-func init() {
-	loadoauth2()
-}
-
 func GetRouter() (*router.Mux,*router.Mux) {
 	return rlogin,rcallback
 }

@@ -3,12 +3,13 @@ package auth;
 import ( 
 	"bytes"
 	"net/http"
-	"encoding/json"
+	// "encoding/json"
 	"html/template"
 	"public/config"
 	"public/router"
 	"public/session"
 	"public/log"
+	"module/global"
 	"module/auth/oauth2"
 	"module/auth/user"
 )  
@@ -17,12 +18,7 @@ var conf *config.Config;
 var globalSessions *session.Manager;
 
 func init() {
-	conf = config.Instance()
-	sessionConfig := &session.ManagerConfig{}
-	json.Unmarshal([]byte(conf.App.Session),sessionConfig)
-	globalSessions, _ = session.NewManager("memcache", sessionConfig)
-	go globalSessions.GC()
-	
+	globalSessions = global.Session
 	mux := router.New()
 	rlogin := "/login"
 	mux.GetFunc(rlogin, logshow)
@@ -49,6 +45,12 @@ func init() {
 	mux.SubRoute("/oauth2/callback",r2)
 
 	router.Instance().SubRoute("/auth",mux)
+}
+
+func Reload() error{
+	oauth2.Reload()
+	user.Reload()
+	return nil
 }
 
 func auth(w http.ResponseWriter, r *http.Request) {

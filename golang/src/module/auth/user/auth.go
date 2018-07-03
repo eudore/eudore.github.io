@@ -73,6 +73,8 @@ func Auth(w http.ResponseWriter, r *http.Request) {
 		// invalid clientid
 	}
 	// login
+	w.Header().Set("Authorization","Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwYXRoIjoiL2ZpbGUvIiwic3ViIjpudWxsLCJtZXRob2QiOjYsImV4cHJpZXMiOjE1Mjk4NDgyMjh9.Es__xkRNwj6u6Q6sJDyMI9g507A3QTDHJtFD-k8HgPA ")
+
 	tools.Template(w,"auth/user/auth.html",map[string]interface{}{})
 }
 

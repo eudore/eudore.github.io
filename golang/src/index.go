@@ -14,13 +14,13 @@ import (
 	"public/session"
 	"public/cache"
 	"public/router"
-	_ "module/global"
-	_ "module/home"
-	_ "module/auth"
-	_ "module/note"
-	_ "module/file"
-	_ "module/chat"
-	_ "module/tools"
+	"module/global"
+	// _ "module/home"
+	"module/auth"
+	"module/note"
+	// "module/file"
+	// _ "module/chat"
+	// _ "module/tools"
 )
 
 var globalSessions *session.Manager;
@@ -28,6 +28,7 @@ var conf *config.Config;
 
 func init() {
 	conf = config.Instance()
+	config.Reload("config")
 	bm,err := cache.NewCache("memcache",`{"conn":"127.0.0.1:12001"}`)
 	if(err==nil){
 		bm.Put("weer/public",[]byte("file"),8640000 * time.Second)
@@ -39,7 +40,7 @@ func init() {
 		Maxlifetime: 3600,
 		Secure: true,
 		CookieLifeTime: 3600,
-		ProviderConfig: conf.App.Memcache,
+		ProviderConfig: global.App.Memcache,
 	}
 	globalSessions,_ = session.NewManager("memcache", sessionConfig)
 	go globalSessions.GC()
@@ -55,29 +56,33 @@ func test(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	// router
+	// set default router
 	mux := router.Instance()
 	static := http.FileServer(http.Dir("/data/web/static"))
 	mux.Handle("/js/", static)
 	mux.Handle("/css/", static)
 	mux.Handle("/favicon.ico", static)
 	mux.HandleFunc("/", test);
-	// set reload
-	server.SetReload(config.Reload)
+	// set reload config function
+	config.SetReload("auth", auth.Reload)
+	config.SetReload("note", note.Reload)
+	// config.SetReload("file", file.Reload)
+	// server set logout reload start
 	server.SetOut(log.Info)
-	// start
-	err := server.Parse(conf.Command,conf.Pidfile, func() error {
-		if conf.Listen.Html2 {
+	server.SetReload(func() error {
+		return config.Reload()
+	})
+	server.Parse(conf.Command,conf.Pidfile, func() error {
+		// load all config
+		config.Reload()
+		if global.Listen.Html2 {
 			os.Setenv("LISTEN_HTML2","1")
 		}
-		if conf.Listen.Https {
-			return server.ListenAndServeTLS(conf.Listen.Addr(),conf.Listen.Certfile,conf.Listen.Keyfile, mux)
+		if global.Listen.Https {
+			return server.ListenAndServeTLS(global.Listen.Addr(),global.Listen.Certfile,global.Listen.Keyfile, mux)
 		}else {
-			return server.ListenAndServe(conf.Listen.Addr(), mux)
+			return server.ListenAndServe(global.Listen.Addr(), mux)
 		}
 		
 	})
-	if err != nil {
-		log.Fatal("ListenAndServe: ", err)
-	}
 }

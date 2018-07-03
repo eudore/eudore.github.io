@@ -26,7 +26,7 @@ func (c *Config) readflag() {
 			c.help()
 			os.Exit(0)
 		default:
-			c.set(v[2:])
+			c.SetData(v[2:])
 			continue
 		}
 		fmt.Println("error args",v)
@@ -38,7 +38,7 @@ func (c *Config) readenv() {
 		if strings.HasPrefix(value, "ENV_") {
 			kv := strings.SplitN(value,"=",2)
 			kv[0] = strings.ToLower(strings.Replace(kv[0],"_",".",-1))[4:]
-			c.set(strings.Join(kv,"="))
+			c.SetData(strings.Join(kv,"="))
 		}
 	}
 }

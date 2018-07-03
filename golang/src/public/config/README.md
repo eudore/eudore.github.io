@@ -15,4 +15,9 @@
 文件配置可以是本地文件or远程读取，使用json格式
 
 file://...
+
 http://...
+
+config.Reload(cs ...string) error 
+
+按参数重新加载指定配置，默认全部

@@ -17,12 +17,12 @@ const (
 
 type Callback func() error
 
-var reload = func() {}
+var reload = func() error {return nil}
 var out = func(args ...interface{}){
 	fmt.Println(args...)
 }
 
-func SetReload(call func()) {
+func SetReload(call Callback) {
 	reload = call
 }
 
@@ -37,7 +37,7 @@ type Cmd struct {
 	Handler Callback
 }
 
-func Resolve(cmd ,pidfile string,handler Callback ) error {
+func Parse(cmd ,pidfile string,handler Callback ) error {
 	c := Cmd{	
 		Cmd: cmd,
 		Pidfile: pidfile,
@@ -52,13 +52,13 @@ func Resolve(cmd ,pidfile string,handler Callback ) error {
 		err = c.Daemon()
 	case "status":
 		err = c.Status()
-		out("status is", err==nil)
+		out("status is ", err==nil)
 	case "stop":
 		err = c.Stop()
-		out("stop is", err==nil)
+		out("stop is ", err==nil)
 	case "restart":
 		err = c.Restart()
-		out("restart is", err==nil)
+		out("restart is ", err==nil)
 	default:
 		err = errors.New("undefined command " + c.Cmd)
 		out("undefined command ",c.Cmd)

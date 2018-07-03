@@ -31,6 +31,10 @@ func init() {
 	fmt.Println("init oauth2 router")
 }
 
+func Reload() error {
+	return loadoauth2()
+}
+
 func getRandomString() string {
 	letters := []rune("1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXY")
 	result := make([]rune, 16)

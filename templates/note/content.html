@@ -9,11 +9,11 @@
 	<meta name="referrer" content="always">
 	<link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
 	<link href='/css/base.css' rel="stylesheet" type="text/css">
-	<script src='/js/prism.js' integrity='sha512-5er36vWGG4t85HPfFUyF/rB9ydf3iZs6XTfV0zJlYm78tu//TYFL7zCZkRqGlaHPMEVtpLE8ifTSTZKJcci+DA=='  async></script>
-	<link href='/css/prism.css' integrity='sha512-WJPDzOqZaUM5PdyNroFk4uZQYDrP78l1uY5s9WzOj2WFC5Ic6/czl3QNVoNxndedifOAFM8jDnCC//kH0sLH6g==' rel="stylesheet">
+	<link href='/css/prism.css' rel="stylesheet">
+	<script src='/js/prism.js' async></script>
 </head>
 <body>
-	{{template "header"}}
+	{{template "header" .}}
 	<div class="container repository-content">
 		<div class="note">
 			<div class="note-header">

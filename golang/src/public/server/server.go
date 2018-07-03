@@ -157,7 +157,10 @@ func (srv *Server) handleSignals() {
 			srv.shutdownHTTPServer()
 		case syscall.SIGUSR1:
 			out("received SIGUSR1, graceful reloading HTTP server.")
-			reload()
+			err := reload()
+			if err != nil {
+				os.Exit(1)
+			}
 		case syscall.SIGUSR2:
 			out("received SIGUSR2, graceful restarting HTTP server.")
 

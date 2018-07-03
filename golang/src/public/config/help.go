@@ -6,25 +6,28 @@ import (
 	"strings"
 	"strconv"
 	"reflect"
+	"encoding/json"
 )
 
 var (
-	errArg 		=	errors.New("undefined args")
-	errType 	= 	errors.New("undefined type")
+	errArg 			=	errors.New("undefined args")
+	errType 		= 	errors.New("undefined type")
+	errValue 		= 	errors.New("undefined value type")
+	errUndefined	=	errors.New("setdata use undefined interface")
 )
 
-type errorConfig struct {
-	data 		string
-	err			error
+type SetConfig interface {
+	SetData(arg string) error
 }
 
-func (e *errorConfig) Error() string {
-	return e.err.Error()+e.data
-}
 
 func (c *Config) help() {
 	getcomment(c,"  --")
 	fmt.Println("  --help\t\tShow help")
+}
+
+func (c *Config) SetData(arg string) error {
+	return SetData(c,arg)
 }
 
 func getcomment(p interface{},prefix string) {
@@ -45,48 +48,98 @@ func getcomment(p interface{},prefix string) {
 			}
 			sv=sv.Elem()
 		}
+		if sv.Type().Kind() == reflect.Interface {
+			getcomment(sv.Interface(),fmt.Sprintf("%s%s.",prefix,strings.ToLower(pt.Field(i).Name)))
+		}
 		if sv.Kind() == reflect.Struct {
 			getcomment(sv.Addr().Interface(),fmt.Sprintf("%s%s.",prefix,strings.ToLower(pt.Field(i).Name)))
 		}
 	}
 }
 
-func (c *Config) set(arg string) error {
+func SetData(p interface{} , arg string) error {
 	kv := append(strings.SplitN(arg,"=",2),"")
 	k,v := kv[0],kv[1]
-	var p interface{} = c
-	pt := reflect.TypeOf(p).Elem()
-	pv := reflect.ValueOf(p).Elem()
 	fs := strings.Split(k,".")
 	len := len(fs) - 1
+	var sv reflect.Value
 	for i,_ := range fs {
-		f,ok := pt.FieldByName(strings.Title(fs[i]))
-		if !ok{
-			// error
-			return errArg
+		pv := reflect.ValueOf(p)
+		for pv.Kind() == reflect.Ptr || pv.Kind() == reflect.Interface {
+			pv= pv.Elem()
 		}
-		sv := pv.Field(f.Index[0])
-		if i == len {
-			return setvalue(sv,v)
+		fmt.Println("\n----- ",pv.Kind(),pv.Type().Kind(),fs[i])
+		switch pv.Kind() {
+		case reflect.Struct:
+			f,ok := pv.Type().FieldByName(strings.Title(fs[i]))
+			if !ok{
+				// error
+				fmt.Println(errArg)
+				return errArg
+			}
+			sv = pv.Field(f.Index[0])
+			if i == len {
+				return setvalue(sv,v)
+			}
+		case reflect.Map:
+			fmt.Println("map1:",i)
+			fmt.Println("ass= ",sv.Kind())
+			sv1 := reflect.ValueOf(pv.Interface().(map[string]interface{})) 
+			fmt.Println(sv1.Type(),sv1.Type().Key(),sv1.Kind())
+			if i==len {
+				sv1.SetMapIndex(reflect.ValueOf(fs[i]), reflect.ValueOf(v))
+				return nil
+			}else {
+				fmt.Println("-",sv1,sv1.MapIndex(reflect.ValueOf(fs[i])))
+				if sv1.MapIndex(reflect.ValueOf(fs[i])).Kind() == reflect.Invalid {
+					b := make(map[string]interface{})
+					sv1.SetMapIndex(reflect.ValueOf(fs[i]), reflect.ValueOf(&b))	
+					sv = reflect.ValueOf(b)
+					//sv = sv1.MapIndex(reflect.ValueOf(fs[i]))
+					//sv = reflect.ValueOf(sv)
+					// var aa interface{}
+					// aa = b
+			// 		sv = reflect.New(reflect.TypeOf(sv1))
+			// 		sv.Elem().Set(reflect.ValueOf(make(map[string]interface{})))
+			 fmt.Println("---",sv)
+			// // fmt.Println(sv,sv.Elem(),sv.Addr())
+					// sv1.SetMapIndex(reflect.ValueOf(fs[i]), reflect.MakeMap(reflect.TypeOf(b)) )
+					
+				}else {
+					sv = reflect.ValueOf(sv.Interface().(map[string]interface{})[fs[i]])
+				}
+				//sv = sv1.MapIndex(reflect.ValueOf(fs[i]))
+				//fmt.Println(reflect.TypeOf(b))
+				fmt.Println(sv.Kind(),sv.Type())
+			}
 		}
 		// is pointer
 		if sv.Type().Kind() == reflect.Ptr {
 			// is null
 			if sv.Elem().Kind() == reflect.Invalid {
+				fmt.Println(sv.IsNil(),"ssssssssssssssssssssssss")
 				sv.Set(reflect.New(sv.Type().Elem()))	
 			}
+			fmt.Println("ssssssss")
 			sv=sv.Elem()
 		}
-		if sv.Type().Kind() != reflect.Struct {
-			return errType
+		if sv.Type().Kind() == reflect.Interface && sv.IsNil() {
+			fmt.Println("new map")
+			sv.Set(reflect.ValueOf(make(map[string]interface{})))
 		}
 		// next
-		p = sv.Addr().Interface()
-		pt = reflect.TypeOf(p).Elem()
-		pv = reflect.ValueOf(p).Elem()
+		fmt.Println("Addr",sv.CanAddr())
+		if sv.CanAddr() {
+			p = sv.Addr().Interface()	
+		}else {
+			p= sv.Interface()
+		}
 	}
+	fmt.Println("--end")
 	return nil
 }
+
+
 func setvalue(v reflect.Value,s string) error {
 	switch v.Kind() {
 	case reflect.Bool:
@@ -128,8 +181,21 @@ func setvalue(v reflect.Value,s string) error {
 		for i,n := range vs {
 			setvalue(v.Index(i),n)
 		}
+	case reflect.Interface:
+		fmt.Println("Interface")
+	case reflect.Map:
+		fmt.Println("Interface Map")
+		return json.Unmarshal([]byte(s),v.Interface())
 	default:
 		fmt.Println("default")
+		return errValue
 	}
 	return nil
 }
+
+
+
+
+
+
+
