@@ -1,4 +1,11 @@
 #!/bin/bash
+_run_server(){
+	docker run -d --restart=always -p 2379:2379 -p 2380:2380 etcd
+	docker run -d --restart=always -p 3306:3306 -v /data/docker/mariadb:/var/lib/mysql/ mariadb
+	docker run -d --restart=always -p 12001:11211 memcached memcached -m 64 -U 0
+	docker run -d --restart=always -p 12002:11211 memcached memcached -m 64 -U 0
+	docker run -d --restart=always -p 12003:11211 memcached memcached -m 64 -U 0
+}
 _install_nginx(){
 	id nginx || useradd nginx
 	groups nginx || groupadd -g nginx nginx

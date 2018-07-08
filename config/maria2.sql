@@ -12,16 +12,17 @@ CREATE TABLE IF NOT EXISTS `tb_auth_oauth2_app`(
 
 DROP TABLE IF EXISTS `tb_auth_oauth2_code`;
 CREATE TABLE IF NOT EXISTS `tb_auth_oauth2_code`(
-    Codo VARCHAR(32) PRIMARY KEY COMMENT '授权码',
-    Redirect_uri VARCHAR(200) NOT NULL COMMENT '重定向URI',
-    ClientID VARCHAR(20) NOT NULL COMMENT '客户端ID',
-    Expires TIMESTAMP NOT NULL COMMENT '过期时间'
+    `Codo` VARCHAR(32) PRIMARY KEY COMMENT '授权码',
+    `Redirect_uri` VARCHAR(200) NOT NULL COMMENT '重定向URI',
+    `ClientID` VARCHAR(20) NOT NULL COMMENT '客户端ID',
+    `Expires` TIMESTAMP NOT NULL COMMENT '过期时间'
 )
 
 DROP TABLE IF EXISTS `tb_auth_oauth2_pass`;
 CREATE TABLE IF NOT EXISTS `tb_auth_oauth2_pass`(
 	`Login` VARCHAR(32) PRIMARY KEY COMMENT '登录用户',
 	`Pass` VARCHAR(64) NOT NULL COMMENT '登录密码Hash',
+	`Salf` CHAR(10)	NOT NULL COMMENT '私钥'
 	`UID` INT UNSIGNED NOT NULL COMMENT '认证ID'
 )
 
@@ -93,16 +94,17 @@ CREATE TABLE IF NOT EXISTS `tb_file_project`(
 	`Path` VARCHAR(32) NOT NULL,
 	`Store` INT UNSIGNED DEFAULT 0 COMMENT 'store ID',
 	`Info` VARCHAR(50),
-	`Size` INT,
-	`MaxSize` INT DEFAULT 0
+	`Size` BIGINT ,
+	`MaxSize` BIGINT  DEFAULT 0
 )
 
 DROP TABLE IF EXISTS `tb_file_store`;
 CREATE TABLE IF NOT EXISTS `tb_file_store`(
-	`ID` INT UNSIGNED DEFAULT 0 COMMENT 'store ID',
-	`Name` VARCHAR(32) COMMENT 'store name',
-	`Host` VARCHAR(64) NOT NULL COMMENT 'Host',
+	`ID` INT UNSIGNED DEFAULT 0 COMMENT 'ID',
+	`Name` VARCHAR(16) COMMENT 'store name',
+	`Store` VARCHAR(16) NOT NULL COMMENT 'store type',
 	`Config` VARCHAR(256) COMMENT 'config'
+	-- Source Host Dir Key Secret
 )
 
 DROP TABLE IF EXISTS `tb_file_save`;
@@ -115,7 +117,7 @@ CREATE TABLE IF NOT EXISTS `tb_file_save`(
 	`PHash` char(32) COMMENT 'file path parent hash',
 #	`UID` int UNSIGNED DEFAULT 0,
 #	`Store` INT UNSIGNED DEFAULT 0,
-	`Size` INT UNSIGNED DEFAULT 0,
+	`Size` BIGINT UNSIGNED DEFAULT 0,
 	`ModTime` TIMESTAMP(6)
 );
 
