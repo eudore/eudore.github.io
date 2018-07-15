@@ -3,10 +3,13 @@ package note;
 import (
 	"fmt"
 //	"bytes"
+	"strings"
 	"net/http"
 //	"strings"
 	"io/ioutil" 
 //	"html/template"
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"public/router"
 	"public/session"
@@ -17,13 +20,13 @@ import (
 )
 
 
-type NoteContent struct {
-	Name		string
-	Format		string
-	Title		string
-	EditTime	string
-	Content		string
-}
+var (
+	stmtQueryPathHash	*sql.Stmt
+	stmtQueryNoteData	*sql.Stmt
+	stmtUpdatePathHash 	*sql.Stmt
+	stmtUpdateNoteData	*sql.Stmt
+	stmtUpdateNoteFormat	*sql.Stmt
+	)	
 
 var globalSessions *session.Manager;
 var globalDB *sql.DB
@@ -40,15 +43,22 @@ func init() {
 	
 	mux.GetFunc("/#index^[0-9a-z]{32,32}$/index", getindex)
 	mux.PostFunc("/#index^[0-9a-z]{32,32}$/index", getindex)
-	mux.GetFunc(":user/*", note)
-	mux.GetFunc(":user", note)
-	mux.GetFunc("content/", note)
-	router.Instance().SubRoute("/note",mux)
+	mux.GetFunc(":user/*", getnote)
+	mux.GetFunc(":user", getnote)
+	mux.PostFunc(":user/*", upnote)
+	mux.PostFunc(":user", upnote)
+	global.Router.SubRoute("/note",mux)
 }
 
 func Reload() error {
 	globalDB = global.Sql
 	globalSessions = global.Session
+	stmtQueryPathHash = global.Stmt("SELECT Path,Hash,PHash FROM tb_note_save;")
+	stmtQueryNoteData = global.Stmt("SELECT EditTime,Title,Format,Content FROM tb_note_save WHERE Hash=?;")
+	stmtUpdatePathHash = global.Stmt("UPDATE tb_note_save SET Hash=?,PHash=? WHERE Hash=?;")
+	stmtUpdateNoteData = global.Stmt("UPDATE tb_note_save SET Content=?,Format=? WHERE Hash=?;")
+	stmtUpdateNoteFormat = global.Stmt("UPDATE tb_note_save SET Content=?,Format=? WHERE Hash=?;")
+	RenewHash()
 	return nil
 }
 
@@ -104,3 +114,39 @@ func checkErr(err error) {
 		panic(err)
 	}
 }
+
+
+func PPathHash(path string) string{
+	n := strings.LastIndex(path,"/")
+	if n == -1 {
+		n = 0
+	}
+	return PathHash(path[:n])
+}
+
+func PathHash(path string) string{
+	md5Ctx := md5.New()
+	md5Ctx.Write([]byte(path))
+	return hex.EncodeToString(md5Ctx.Sum(nil))
+}
+
+/*
+action:
+	readnote
+	sharenote
+	createnote
+	updatenote
+	deletenote
+
+	updateformat
+	formathtml
+
+	flushhash
+	flushhome
+	cleanfile
+
+role:
+	admin: [file:*]
+	editer: [file:readfile,file:sharenote,file:createnote,file:updatenote,file:deletenote,file:updateformat]
+	reader: [file:readfile,file:sharenote]
+*/

@@ -128,7 +128,7 @@ CREATE TABLE IF NOT EXISTS `tb_note_save`(
 	`PHash` char(32),
 	`Status` INT UNSIGNED DEFAULT 0,
 	`UID` int UNSIGNED DEFAULT 0,
-	`Uri` VARCHAR(100),
+	`Path` VARCHAR(100),
 	`Format` CHAR(6),
 	`Name` text,
 	`Title` VARCHAR(50),

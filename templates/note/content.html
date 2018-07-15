@@ -17,16 +17,16 @@
 	<div class="container repository-content">
 		<div class="note">
 			<div class="note-header">
-				<div class="note-title"><h1{{if ge .Level 30}} ondblclick="edit()"{{end}}>{{.Title}}</h1></div>
+				<div class="note-title"><h1{{if ge .Level 30}} ondblclick="edit()"{{end}}>{{.Note.Title}}</h1></div>
 				<div class="note-actions">
 				</div>
 				<div class="note-info">
 					<span>作者:</span>
-					<span>时间:{{.Edittime}}</span>
+					<span>时间:{{.Note.EditTime}}</span>
 				</div>
 			</div>
-			<div id="editor" class="note-content">
-{{.Content}}
+			<div id="editor" class="note-content note-format-{{.Note.Format}}">
+				{{.Note.ToHTML}}
 			</div>
 		</div>
 	</div>
@@ -34,12 +34,56 @@
 	{{if ge .Level 30}}
 	<script type="text/javascript">
 		"use strict";
+		loadScript = function(fileName, callback, into) {
+        
+	        into          = into     || "head";
+	        callback      = callback || function() {};
+	        
+	        var script    = null; 
+	        script        = document.createElement("script");
+	        script.id     = fileName.replace(/[\./]+/g, "-");
+	        script.type   = "text/javascript";        
+	        script.src    = fileName + ".js";
+	        
+	        if (editormd.isIE8) 
+	        {            
+	            script.onreadystatechange = function() {
+	                if(script.readyState) 
+	                {
+	                    if (script.readyState === "loaded" || script.readyState === "complete") 
+	                    {
+	                        script.onreadystatechange = null; 
+	                        editormd.loadFiles.js.push(fileName);
+	                        callback();
+	                    }
+	                } 
+	            };
+	        }
+	        else
+	        {
+	            script.onload = function() {
+	                editormd.loadFiles.js.push(fileName);
+	                callback();
+	            };
+	        }
+
+	        if (into === "head") {
+	            document.getElementsByTagName("head")[0].appendChild(script);
+	        } else {
+	            document.body.appendChild(script);
+	        }
+	    };
+
 		var editor;
 		function edit() {
-			editor = new window.Editor('#editor')
-			editor.customConfig.uploadImgShowBase64 = true
-			editor.create()
+			loadScript("/js/editor.js",function(){
+				//<script src="/js/editor.js"><//script>
+				editor = new window.Editor('#editor')
+				editor.customConfig.uploadImgShowBase64 = true
+				editor.create()
+			})
 		}
+
 		function commit(){
 			fetch({{.Uri}},{ method: 'PUT',credentials: 'include', body: editor.txt.html()}).then(function(response) {
 				if (!response.ok) throw new Error(response.statusText)
@@ -51,7 +95,6 @@
 			})
 		}
 	</script>
-	<script src="/js/editor.js"></script>
 	{{end}}
 </body>
 </html>
