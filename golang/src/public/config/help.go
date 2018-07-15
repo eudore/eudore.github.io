@@ -21,13 +21,9 @@ type SetConfig interface {
 }
 
 
-func (c *Config) help() {
+func Help(c interface{}) {
 	getcomment(c,"  --")
-	fmt.Println("  --help\t\tShow help")
-}
-
-func (c *Config) SetData(arg string) error {
-	return SetData(c,arg)
+	getcomment(configinfos[c],"  --")
 }
 
 func getcomment(p interface{},prefix string) {
@@ -48,127 +44,71 @@ func getcomment(p interface{},prefix string) {
 			}
 			sv=sv.Elem()
 		}
-		if sv.Type().Kind() == reflect.Interface {
-			getcomment(sv.Interface(),fmt.Sprintf("%s%s.",prefix,strings.ToLower(pt.Field(i).Name)))
-		}
 		if sv.Kind() == reflect.Struct {
 			getcomment(sv.Addr().Interface(),fmt.Sprintf("%s%s.",prefix,strings.ToLower(pt.Field(i).Name)))
 		}
 	}
 }
 
-func SetData(p interface{} , arg string) error {
+func SetData(p interface{},arg string) error{
 	kv := append(strings.SplitN(arg,"=",2),"")
-	k,v := kv[0],kv[1]
-	fs := strings.Split(k,".")
+	d,err := Data(p,kv[0])
+	setvalue(d,kv[1])
+	return err
+}
+
+func GetData(p interface{},arg string) (interface{}, error){
+	kv := append(strings.SplitN(arg,"=",2),"")
+	d,err := Data(p,kv[0])
+	return d.Interface(),err
+}
+
+func Data(p interface{}, arg string) (reflect.Value, error) {
+	fs := strings.Split(arg,".")
 	len := len(fs) - 1
-	var sv reflect.Value
 	for i,_ := range fs {
 		pv := reflect.ValueOf(p)
 		for pv.Kind() == reflect.Ptr || pv.Kind() == reflect.Interface {
 			pv= pv.Elem()
 		}
 		fmt.Println("\n----- ",pv.Kind(),pv.Type().Kind(),fs[i])
-		switch pv.Kind() {
-		case reflect.Struct:
+		if pv.Kind() == reflect.Struct {
 			f,ok := pv.Type().FieldByName(strings.Title(fs[i]))
 			if !ok{
 				// error
 				fmt.Println(errArg)
-				return errArg
+				return pv,errArg
 			}
-			sv = pv.Field(f.Index[0])
+			pv = pv.Field(f.Index[0])
 			if i == len {
-				return setvalue(sv,v)
-			}
-		case reflect.Map:
-			fmt.Println("map1:",i)
-			fmt.Println("ass= ",sv.Kind())
-			sv1 := reflect.ValueOf(pv.Interface().(map[string]interface{})) 
-			fmt.Println(sv1.Type(),sv1.Type().Key(),sv1.Kind())
-			if i==len {
-				sv1.SetMapIndex(reflect.ValueOf(fs[i]), reflect.ValueOf(v))
-				return nil
-			}else {
-				fmt.Println("-",sv1,sv1.MapIndex(reflect.ValueOf(fs[i])))
-				if sv1.MapIndex(reflect.ValueOf(fs[i])).Kind() == reflect.Invalid {
-					b := make(map[string]interface{})
-					sv1.SetMapIndex(reflect.ValueOf(fs[i]), reflect.ValueOf(&b))	
-					sv = reflect.ValueOf(b)
-					//sv = sv1.MapIndex(reflect.ValueOf(fs[i]))
-					//sv = reflect.ValueOf(sv)
-					// var aa interface{}
-					// aa = b
-			// 		sv = reflect.New(reflect.TypeOf(sv1))
-			// 		sv.Elem().Set(reflect.ValueOf(make(map[string]interface{})))
-			 fmt.Println("---",sv)
-			// // fmt.Println(sv,sv.Elem(),sv.Addr())
-					// sv1.SetMapIndex(reflect.ValueOf(fs[i]), reflect.MakeMap(reflect.TypeOf(b)) )
-					
-				}else {
-					sv = reflect.ValueOf(sv.Interface().(map[string]interface{})[fs[i]])
-				}
-				//sv = sv1.MapIndex(reflect.ValueOf(fs[i]))
-				//fmt.Println(reflect.TypeOf(b))
-				fmt.Println(sv.Kind(),sv.Type())
+				return pv,nil
 			}
 		}
-		// is pointer
-		if sv.Type().Kind() == reflect.Ptr {
-			// is null
-			if sv.Elem().Kind() == reflect.Invalid {
-				fmt.Println(sv.IsNil(),"ssssssssssssssssssssssss")
-				sv.Set(reflect.New(sv.Type().Elem()))	
+		// is null
+		switch pv.Kind() {
+		case reflect.Ptr:
+			if pv.IsNil() {
+				fmt.Println("+new struct ptr")
+				pv.Set(reflect.New(pv.Type().Elem()))	
 			}
-			fmt.Println("ssssssss")
-			sv=sv.Elem()
+			pv=pv.Elem()
+		case reflect.Map,reflect.Interface:
+			return pv,errArg
 		}
-		if sv.Type().Kind() == reflect.Interface && sv.IsNil() {
-			fmt.Println("new map")
-			sv.Set(reflect.ValueOf(make(map[string]interface{})))
-		}
-		// next
-		fmt.Println("Addr",sv.CanAddr())
-		if sv.CanAddr() {
-			p = sv.Addr().Interface()	
-		}else {
-			p= sv.Interface()
-		}
+		p = pv.Addr().Interface()
 	}
-	fmt.Println("--end")
-	return nil
+	return reflect.ValueOf(p),nil
 }
-
 
 func setvalue(v reflect.Value,s string) error {
 	switch v.Kind() {
-	case reflect.Bool:
-		if s == "" {
-			v.SetBool(true)
-		}else {
-			rb,_ := strconv.ParseBool(s)
-			v.SetBool(rb)
-		}
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		n, err := strconv.ParseInt(s, 10, 64)
-		if err != nil || v.OverflowInt(n) {
-			return errType
-		}
-		v.SetInt(n)
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		n, err := strconv.ParseUint(s, 10, 64)
-		if err != nil || v.OverflowUint(n) {
-			return errType
-		}
-		v.SetUint(n)
-	case reflect.Float32, reflect.Float64:
-		n, err := strconv.ParseFloat(s, v.Type().Bits())
-		if err != nil || v.OverflowFloat(n) {
-			return errType
-		}
-		v.SetFloat(n)
-	case reflect.String:
-		v.SetString(s)
+	case reflect.Bool,
+	reflect.Float32, reflect.Float64,
+	reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+	reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr,
+	reflect.String:
+		k ,_ := getvalue(v.Type(),s)
+		v.Set(k)
 	case reflect.Ptr:
 		if v.Elem().Kind() == reflect.Invalid {
 			v.Set(reflect.New(v.Type().Elem()))
@@ -181,11 +121,12 @@ func setvalue(v reflect.Value,s string) error {
 		for i,n := range vs {
 			setvalue(v.Index(i),n)
 		}
-	case reflect.Interface:
-		fmt.Println("Interface")
 	case reflect.Map:
 		fmt.Println("Interface Map")
 		return json.Unmarshal([]byte(s),v.Interface())
+	case reflect.Interface:
+		v.Set(reflect.ValueOf(s))
+		fmt.Println("Interface")
 	default:
 		fmt.Println("default")
 		return errValue
@@ -193,9 +134,35 @@ func setvalue(v reflect.Value,s string) error {
 	return nil
 }
 
-
-
-
-
-
-
+func getvalue(t reflect.Type,s string) (reflect.Value, error) {
+	switch t.Kind() {
+	case reflect.Bool:
+		if s == "" {
+			return reflect.ValueOf(true), nil
+		}else {
+			rb,_ := strconv.ParseBool(s)
+			return reflect.ValueOf(rb), nil
+		}
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		n, err := strconv.ParseInt(s, 10, 64)
+		if err != nil {
+			return reflect.Zero(t), errType
+		}
+		return reflect.ValueOf(n).Convert(t),nil
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		n, err := strconv.ParseUint(s, 10, 64)
+		if err != nil {
+			return reflect.Zero(t), errType
+		}
+		return reflect.ValueOf(n).Convert(t),nil
+	case reflect.Float32, reflect.Float64:
+		n, err := strconv.ParseFloat(s, t.Bits())
+		if err != nil {
+			return reflect.Zero(t), errType
+		}
+		return reflect.ValueOf(n).Convert(t),nil
+	case reflect.String:
+		return reflect.ValueOf(s),nil
+	}
+	return reflect.Zero(t), errType
+}

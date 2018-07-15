@@ -8,10 +8,52 @@ import (
 	"strings"
 	"io/ioutil"
 	"net/http"
+	"encoding/json"
 )
 
 
-func (c *Config) readflag() {
+func ReadConfig(c interface{}) error {
+	// change workspace
+	os.Chdir(ReadSys("workdir"))
+	// read config data
+	ccc,_ := GetData(c,"config")
+	cd, err := ReadConfigData(ccc.(string))//,ReadSys("config")
+	if err != nil {
+		fmt.Println("配置读取失败:", err)
+		return err
+	}
+	// load config to c
+	err = json.Unmarshal(cd,c)
+	if err != nil {
+		fmt.Println("配置解析失败:", err)
+		return err
+	}
+	// save mode
+	info := &configinfo{}
+	json.Unmarshal(cd,info)
+	configinfos[c] = info
+	return nil
+}
+
+func ReadMode(c interface{}) error {
+	info,ok := configinfos[c]
+	if !ok {
+		return nil
+	}
+	info.Enable = append(info.Enable, strings.Split(ReadSys("enable"), ",")...)
+	info.Disable = append(info.Disable, strings.Split(ReadSys("disable"), ",")...)
+	// set mode config
+	for _,v := range info.getmode() {
+		if b,err := json.Marshal(info.Mode[v]);err == nil && info.Mode[v] != nil {
+			json.Unmarshal(b, &c)
+		}
+	}
+	os.Chdir(info.Workdir) 
+	return nil
+}
+
+func ReadFlag(c interface{}) {
+	info := configinfos[c]
 	for _,v := range os.Args[1:] {
 		if !strings.HasPrefix(v, "--") {
 			fmt.Println("invalid args",v)
@@ -19,31 +61,54 @@ func (c *Config) readflag() {
 		}
 		kv := strings.SplitN(v[2:],"=",2)
 		switch kv[0]{
-		case "flag":
-		case "mode":
-			continue
-		case "help":
-			c.help()
-			os.Exit(0)
+		case "test","help","enable","disable","mode":
+			SetData(info, v[2:])
+		// case "flag":
+		// case "mode":
+		// 	continue
+		// case "help":
+		// 	os.Exit(0)
 		default:
-			c.SetData(v[2:])
+			SetData(c, v[2:])
 			continue
 		}
 		fmt.Println("error args",v)
 	}
 }
 
-func (c *Config) readenv() {
+func ReadEnv(c interface{}) {
 	for _, value := range os.Environ() {
 		if strings.HasPrefix(value, "ENV_") {
 			kv := strings.SplitN(value,"=",2)
 			kv[0] = strings.ToLower(strings.Replace(kv[0],"_",".",-1))[4:]
-			c.SetData(strings.Join(kv,"="))
+			SetData(c,strings.Join(kv,"="))
 		}
 	}
 }
 
-func readconfig(sour string) ([]byte,error) {
+
+
+func ReadSys(name string) string {
+	// read name from env
+	envname := "ENV_" + strings.ToUpper(name)
+	for _, v := range os.Environ() {
+		if strings.HasPrefix(v, envname) {
+			kv := append(strings.SplitN(v,"=",2),"") 
+			return kv[1]
+		}
+	}
+	// read name from flag
+	flagname := "--" + name
+	for _,v := range os.Args[1:] {
+		if strings.HasPrefix(v, flagname) {
+			kv := append(strings.SplitN(v,"=",2),"") 
+			return kv[1]
+		}
+	}
+	return ""
+}
+
+func ReadConfigData(sour string) ([]byte,error) {
 	if len(sour) == 0 {
 		return nil,errors.New("config is null")
 	}

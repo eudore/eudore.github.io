@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 	"strings"
+	"strconv"
 	"net/http"
 	"golang.org/x/time/rate"
 	"public/log"
@@ -28,15 +29,19 @@ func GetRealClientIP(r *http.Request ) string {
 }
 
 func (g *gw) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.Info(r.Method,": ",r.URL.Path)
-	//echo(w,r)
+	t := time.Now()
 	ip := GetRealClientIP(r)
+	log.Info(ip," ",r.Method,": ",r.URL.Path)
+	//echo(w,r)
 	limiter := getVisitor(ip)
 	if !limiter.Allow() {
 		log.Info("限速：", ip)
 		http.Error(w, http.StatusText(429), http.StatusTooManyRequests)
 		return
 	}
+	w.Header().Add("X-Request-Id","000")
+	w.Header().Set("X-Runtime", strconv.FormatFloat(time.Since(t).Seconds(), 'f', -1, 64) )
+	AuthServeHTTP(w,r)
 	Router.ServeHTTP(w,r)
 }
 

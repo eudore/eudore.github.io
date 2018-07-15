@@ -22,7 +22,9 @@ import (
 )
 
 func init() {
-	config.Reload()
+	config.SetDf(global.Config)
+	log.Json(global.Config)
+	config.ReloadAll()
 	bm,err := cache.NewCache("memcache",`{"conn":"127.0.0.1:12001"}`)
 	if(err==nil){
 		bm.Put("weer/public",[]byte("file"),8640000 * time.Second)
@@ -41,26 +43,26 @@ func main() {
 	mux.Handle("/favicon.ico", static)
 	mux.HandleFunc("/test", test)
 	// set reload config function
-	config.SetReload("global", 100, global.Reload)
-	config.SetReload("auth", 200, auth.Reload)
-	config.SetReload("note", 300, note.Reload)
-	config.SetReload("file", 400, file.Reload)
+	config.SetReload("global", 0x100, global.Reload)
+	config.SetReload("auth", 0x200, auth.Reload)
+	config.SetReload("note", 0x300, note.Reload)
+	config.SetReload("file", 0x400, file.Reload)
 	// server set logout reload start
 	server.SetOut(log.Info)
 	server.SetReload(func() error {
-		return config.Reload()
+		return config.ReloadAll()
 	})
-	conf := config.Instance()
-	server.Parse(conf.Command,conf.Pidfile, func() error {
+	server.Parse(global.Config.Command,global.Config.Pidfile, func() error {
 		// load all config
-		config.Reload()
-		if global.Listen.Html2 {
+		config.ReloadAll()
+		listen := global.Config.Listen
+		if listen.Html2 {
 			os.Setenv("LISTEN_HTML2","1")
 		}
-		if global.Listen.Https {
-			return server.ListenAndServeTLS(global.Listen.Addr(), global.Listen.Certfile, global.Listen.Keyfile, global.Gw)
+		if listen.Https {
+			return server.ListenAndServeTLS(listen.Addr(), listen.Certfile, listen.Keyfile, global.Gw)
 		}else {
-			return server.ListenAndServe(global.Listen.Addr(), global.Gw)
+			return server.ListenAndServe(listen.Addr(), global.Gw)
 		}
 		
 	})

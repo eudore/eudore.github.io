@@ -2,12 +2,10 @@ package global
 
 
 import (
-	"fmt"
 	"net/http"
 	"encoding/json"
 	"database/sql"
 	"github.com/NYTimes/gziphandler"
-	"public/config"
 	"public/cache"
 	"public/session"
 	"public/router"
@@ -15,9 +13,7 @@ import (
 )
 
 // config
-var Config *config.Config;
-var Listen *listenconfig
-var App *appconfig
+var Config *config;
 
 // Singleton
 var Gw http.Handler 
@@ -28,11 +24,9 @@ var Sql *sql.DB
 
 
 func init(){
-	Config = config.Instance()
-	App = &appconfig{}
-	Listen = &listenconfig{}
-	Config.App = App
-	Config.Listen = Listen
+	Config = &config{
+		Config:		"/data/web/config/conf.json",
+	}
 	// router
 	Router = router.New()
 	Gw = gziphandler.GzipHandler(&gw{})
@@ -43,34 +37,13 @@ func Reload() (err error) {
 	//Cache,_ = cache.NewCache(Config.App.Cache)
 	// session
 	sessionConfig := &session.ManagerConfig{}
-	json.Unmarshal([]byte(App.Session),sessionConfig)
+	json.Unmarshal([]byte(Config.App.Session),sessionConfig)
 	Session, err = session.NewManager("memcache", sessionConfig)
 	log.Info("Session: ",err)
 	// sql
-	Sql,err = sql.Open("mysql",App.Mysql)
+	Sql,err = sql.Open("mysql",Config.App.Mysql)
 	log.Info("Sql: ",err)
 	return
 }
 
 
-
-type appconfig struct {
-	Mysql 		string		`comment:"Mysql"`
-	Memcache 	string		`comment:"Memcached"`
-	Session		string		`comment:"Session"`
-	Cache		string		`comment:"Cache"`
-}
-
-
-type listenconfig struct {
-	Ip			string		`comment:"Listen Ip Addr" json:"IP"`
-	Port		int			`comment:"Server use port"`
-	Https		bool		`comment:"is https"`
-	Html2		bool		`comment:"is html2"`
-	Certfile	string		`comment:"cert file"`
-	Keyfile		string		`comment:"key file"`
-}
-
-func (l *listenconfig) Addr() string {
- 	return fmt.Sprintf("%s:%d",l.Ip,l.Port)
- } 
