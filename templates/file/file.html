@@ -39,7 +39,14 @@
 				return
 			for(var i of obj){
 				// get policy
-				fetch(document.location.href+"/"+i.name,{ method: "POST",credentials: "same-origin"}).then(function(response) {
+				fetch(document.location.href+"/"+i.name+"?signed",{ 
+					method: "GET",
+					credentials: "same-origin",
+					headers: new Headers({
+						'method': "POST",
+						'length': i.size 
+					})
+				}).then(function(response) {
 					if (!response.ok) throw new Error(response.statusText)
 					return response.json()
 				}).then(function(r){
@@ -100,7 +107,7 @@
 						{{else}}
 						<td class="file-ico"></td>
 						{{end}}
-						<td><a href="{{$.url}}/{{$file.Name}}">{{$file.Name}}</a></td>
+						<td><a href="/file{{$.url}}/{{$file.Name}}">{{$file.Name}}</a></td>
 						<td>{{$file.Size}}</td>
 						<td>{{$file.ModTime}}</td>
 					</tr>

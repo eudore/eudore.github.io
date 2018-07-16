@@ -3,29 +3,51 @@ package file;
 
 import (
 	"fmt"
+	"strconv"
 	"net/http"
 	"html/template"
-//	"public/log"
+	"public/log"
 	"public/router"
-	"module/file/filestore"
+	"module/file/store"
 )
 
 
 func fileget(w http.ResponseWriter, r *http.Request) {
-	fmt.Println(filestore.PathHash(r.RequestURI[6:]))
-	if filestore.IsFile(r.RequestURI[6:]) {
-		user := router.GetValue(r, "user")
-		zone := router.GetValue(r, "zone")
-		fs,err := filestore.Getstore(user+"/"+zone)
+	fmt.Println(r.RequestURI,r.URL.Path,store.PathHash(r.URL.Path))
+	user := router.GetValue(r, "user")
+	zone := router.GetValue(r, "zone")
+	fs,err := store.Getstore(user+"/"+zone)
+	//log.Json(fs)
+	if err!=nil {
+		w.WriteHeader(http.StatusNotFound) 
+		return
+	}
+	if r.URL.RawQuery == "signed" {
+		length,_ := strconv.ParseInt(r.Header.Get("length"), 10, 64)
+		p := &store.Policy{
+			Host: "https://" + r.Host,
+			Directory: Prefix + r.URL.Path,
+			Method: r.Header.Get("method"),
+			Length: length,
+		}
+		response := fs.Signed(p)
+		log.Json(p)
+		w.Header().Set("Access-Control-Allow-Methods", r.Header.Get("method"))
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.WriteHeader(http.StatusOK)
+		w.Write(response)
+		return
+	}
+	if store.IsFile(r.URL.Path) {
 		if err!=nil {
 			w.WriteHeader(http.StatusNotFound) 
 			return
 		}
-		fs.Load(w,r)
+		fmt.Println("file load file:",r.URL.Path,fs.Load(w,r.URL.Path))
 		return
 	}
-	fs := filestore.List(r.RequestURI)
-	//t, _ := template.ParseFiles("/data/web/templates/file/file.html");
+	f := store.List(r.URL.Path)
 	tmp, _ := template.ParseFiles("/data/web/templates/file/file.html","/data/web/templates/base.html")
-	tmp.Execute(w, map[string]interface{}{"url": r.RequestURI,"files": fs});
+	tmp.Execute(w, map[string]interface{}{"url": r.URL.Path,"files": f});
+	w.WriteHeader(http.StatusOK)
 }

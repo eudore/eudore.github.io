@@ -41,7 +41,8 @@ func main() {
 	mux.Handle("/js/", static)
 	mux.Handle("/css/", static)
 	mux.Handle("/favicon.ico", static)
-	mux.HandleFunc("/test", test)
+	mux.HandleFunc("/test/test", test)
+	mux.HandleFunc("/test/echo", echo)
 	// set reload config function
 	config.SetReload("global", 0x100, global.Reload)
 	config.SetReload("auth", 0x200, auth.Reload)
@@ -80,6 +81,9 @@ func test(w http.ResponseWriter, r *http.Request) {
 		Expires:	time.Now().Add(10000 * time.Second),
 	}
 	http.SetCookie(w,cookie)
+}
+
+func echo(w http.ResponseWriter, r *http.Request) {
 	log.Info("---echo---")
 	log.Info(r.RemoteAddr)
 	log.Json(r.URL)
