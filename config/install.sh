@@ -208,7 +208,7 @@ _install_golang(){
 	wget https://dl.google.com/go/go1.10.1.linux-amd64.tar.gz
 	tar axf go1.10.1.linux-amd64.tar.gz -C /usr/local
 	echo 'export PATH=$PATH:/usr/local/go/bin' > /etc/profile.d/go.sh
-	echo 'export GOPATH=/root/go:/data/web/golang' >> /etc/profile.d/go.sh
+	echo 'export GOPATH=$HOME/go:/data/web/golang' >> /etc/profile.d/go.sh
 }
 _main(){
 	set -e

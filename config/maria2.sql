@@ -43,16 +43,26 @@ CREATE TABLE IF NOT EXISTS `tb_auth_oauth2_login`(
 	`Stats` INT COMMENT '认证状态 0正常 1注册'
 );
 
-DROP TABLE IF EXISTS `tb_auth_user_info`;
-CREATE TABLE IF NOT EXISTS `tb_auth_user_info`(
-	`UID` int UNSIGNED PRIMARY KEY Auto_Increment,
-	`Name` VARCHAR(16) NOT NULL UNIQUE COMMENT '',
-	`Status` INT UNSIGNED DEFAULT 0,
-	`Level` INT UNSIGNED DEFAULT 0,
-	`LoginIP` INT UNSIGNED DEFAULT 0,
-	`LoginTime` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-	`SiginTime` DATE
+DROP TABLE IF EXISTS `tb_auth_ram`;
+CREATE TABLE IF NOT EXISTS `tb_auth_ram`(
 );
+
+DROP TABLE IF EXISTS `tb_auth_ram_polic`;
+CREATE TABLE IF NOT EXISTS `tb_auth_ram_polic`(
+	`ID` int UNSIGNED PRIMARY KEY Auto_Increment COMMENT 'Polic ID',
+	`Action` VARCHAR(256) COMMENT 'Action list'
+	`Resource` VARCHAR(256) COMMENT 'Resource list' 
+	`Condition`	VARCHAR(256) COMMENT 'Addr IP',
+	`Effect` TINYINT(1) COMMENT 'Allow or Deny'
+);
+
+DROP TABLE IF EXISTS `tb_auth_ram_bind`;
+CREATE TABLE IF NOT EXISTS `tb_auth_ram_bind`(
+	`UID` int UNSIGNED COMMENT 'User ID',
+	`PID` int UNSIGNED COMMENT 'Polic ID',
+	`Index` int UNSIGNED COMMENT `策略优先级`
+);
+CREATE INDEX id_auth_ram_bind_uid ON tb_auth_ram_bind(UID); 
 
 DROP TABLE IF EXISTS `tb_auth_user_token`;
 CREATE TABLE IF NOT EXISTS `tb_auth_user_token`(
@@ -61,6 +71,17 @@ CREATE TABLE IF NOT EXISTS `tb_auth_user_token`(
 	Scope int COMMENT '权限范围',
     Expires TIMESTAMP NOT NULL COMMENT '过期时间'
 )
+
+DROP TABLE IF EXISTS `tb_auth_user_info`;
+CREATE TABLE IF NOT EXISTS `tb_auth_user_info`(
+	`UID`  int UNSIGNED PRIMARY KEY Auto_Increment,
+	`Name` VARCHAR(16) NOT NULL UNIQUE COMMENT '',
+	`Status` INT UNSIGNED DEFAULT 0,
+	`Level` INT UNSIGNED DEFAULT 0,
+	`LoginIP` INT UNSIGNED DEFAULT 0,
+	`LoginTime` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+	`SiginTime` DATE
+);
 
 DROP TABLE IF EXISTS `tb_auth_project`;
 CREATE TABLE IF NOT EXISTS `tb_auth_project`(

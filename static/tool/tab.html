@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+</head>
+<style type="text/css">
+#text {width: 800px;height: 960px;}	
+</style>
+<body>
+	<button onclick="an()">jass格式化</button>
+	<button onclick="unan()">jass压缩</button>
+	<textarea id="text">
+	</textarea>
+	<script type="text/javascript">
+		"use strict";
+		var text = document.getElementById("text")
+		var ptstart = /^\s*(?:library|globals|function|public function|loop|if|elseif|else)/
+		var ptend = /^\s*(?:endlibrary|endglobals|endfunction|endloop|elseif|else|endif)/
+		function an() {
+			var depath = 1
+			var t = ""
+			for(var i of text.value.split("\n")) {
+				if (ptend.test(i)) {
+					depath--
+				}
+				t += ( (new Array(depath)).join("\t") + i.trim() + "\n")
+				if (ptstart.test(i)) {
+					depath++
+				} 
+			}
+			text.value = t
+		}
+		function unan(){
+			var t = ""
+			for(var i of text.value.split("\n")) {
+				t += (i.trim() + "\n")
+			}
+			text.value = t
+		}
+	</script>
+</body>
+</html>

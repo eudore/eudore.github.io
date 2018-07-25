@@ -44,8 +44,6 @@ https://golang.org/pkg/log/
 
 https://github.com/wangfupeng1988/wangEditor
 
-https://github.com/pandao/editor.md
-
 https://github.com/PrismJS/prism
 
 https://github.com/MindTickle/sha256-for-bower
@@ -54,4 +52,4 @@ https://github.com/mishoo/UglifyJS
 
 
 
-auth2、http2、token、seesion、gzip、pb、grpc
+auth2、http2、token、seesion、gzip、pb、grpc、rbac
