@@ -8,9 +8,9 @@
 	<meta name="viewport" content="width=device-width,user-scalable=no">
 	<meta name="referrer" content="always">
 	<link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
-	<link href='/css/base.css' rel="stylesheet" type="text/css">
-	<link href='/css/prism.css' rel="stylesheet">
-	<script src='/js/prism.js' async></script>
+	<link href='https://cdn.wejass.com/css/base.css' integrity='sha512-+w1V/SbHV1OFki7whtBt5StUDqLzDiucL+OCTd51BxB/nMDuGMTmfixc8aPxp4XJgjUIZRs8a/NCLa+GlPTvtA==' rel="stylesheet" crossorigin="anonymous">
+	<link href='https://cdn.wejass.com/css/note/prism.css' integrity='sha512-1ooxbLBdlxBjvBCG4GUDikLCL9mbdAqHImY7AASmMpxl9wFBLsY5U/FIbpuhDTQPYhp92+uJdY0gyOLWwyePyA==' rel="stylesheet" crossorigin="anonymous">
+	<script src='https://cdn.wejass.com/js/note/prism.js' integrity='sha512-8oOoGaUqkFmkCYGT2inP9SJc/WkofsS9ob4W4okP/oq74q7xMDJPFXIwdcPmjdYUKoI4vvYkYkgwkB/ssisozg==' crossorigin="anonymous" async></script>
 </head>
 <body>
 	{{template "header" .}}
@@ -31,6 +31,12 @@
 		</div>
 	</div>
 	{{template "footer"}}
+	{{if eq .Note.Format "md"}}
+	<script src='https://cdn.wejass.com/js/note/marked.js' integrity='sha512-sXqPlSbXUfcx4eVCsvC8LOxSteMT1gk/tGgSbVFbCYl1pPuqlEY2dYSoeXdNuyykrCVCOZeeUqELwiJpeFUviw==' crossorigin="anonymous"></script>
+	<script>
+		document.getElementById('editor').innerHTML = marked(document.getElementById('editor').innerHTML);
+	</script>
+	{{end}}
 	{{if ge .Level 30}}
 	<script type="text/javascript">
 		"use strict";
@@ -76,7 +82,7 @@
 
 		var editor;
 		function edit() {
-			loadScript("/js/editor.js",function(){
+			loadScript("/js/note/editor.js",function(){
 				//<script src="/js/editor.js"><//script>
 				editor = new window.Editor('#editor')
 				editor.customConfig.uploadImgShowBase64 = true

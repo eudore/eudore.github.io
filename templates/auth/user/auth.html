@@ -8,154 +8,11 @@
 	<meta name="referrer" content="always">
 	<meta name="viewport" content="width=device-width,user-scalable=no">
 	<link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
-	<link href='/css/base.css' rel="stylesheet" type="text/css">
-	<script src='/js/hash.js' async></script>
-	<!-- <link href="/css/slick-login.css" rel="stylesheet" type="text/css"> -->
-	<style type="text/css">
-#slick-login {
-	width: 220px;
-	height: 155px;
-	/*position: absolute;*/
-/*    left: 50%;
-	top: 50%;*/
-/*    margin-left: -110px;
-	margin-top: -75px;*/
- 
-	-webkit-animation: login 1s ease-in-out;
-	-moz-animation: login 1s ease-in-out;
-	-ms-animation: login 1s ease-in-out;
-	-o-animation: login 1s ease-in-out;
-	animation: login 1s ease-in-out;
-}
- 
-#slick-login label {
-	display: none;
-}
- 
-.placeholder {
-	color: #444;
-}
-#slick-login input[type="text"],#slick-login input[type="password"] {
-	width: 100%;
-	height: 40px;
-	positon: relative;
-	margin-top: 7px;
-	font-size: 14px;
-	color: #444;
-	outline: none;
-	border: 1px solid rgba(0, 0, 0, .49);
- 
-	padding-left: 20px;
-	 
-	-webkit-background-clip: padding-box;
-	-moz-background-clip: padding-box;
-	background-clip: padding-box;
-	border-radius: 6px;
- 
-	background-image: -webkit-linear-gradient(bottom, #FFFFFF 0%, #F2F2F2 100%);
-	background-image: -moz-linear-gradient(bottom, #FFFFFF 0%, #F2F2F2 100%);
-	background-image: -o-linear-gradient(bottom, #FFFFFF 0%, #F2F2F2 100%);
-	background-image: -ms-linear-gradient(bottom, #FFFFFF 0%, #F2F2F2 100%);
-	background-image: linear-gradient(bottom, #FFFFFF 0%, #F2F2F2 100%);
- 
-	-webkit-box-shadow: inset 0px 2px 0px #d9d9d9;
-	box-shadow: inset 0px 2px 0px #d9d9d9;
- 
-	-webkit-transition: all .1s ease-in-out;
-	-moz-transition: all .1s ease-in-out;
-	-o-transition: all .1s ease-in-out;
-	-ms-transition: all .1s ease-in-out;
-	transition: all .1s ease-in-out;
-}
- 
-#slick-login input[type="text"]:focus,#slick-login input[type="password"]:focus {
-	-webkit-box-shadow: inset 0px 2px 0px #a7a7a7;
-	box-shadow: inset 0px 2px 0px #a7a7a7;
-}
- 
-#slick-login input:first-child {
-	margin-top: 0px;
-}
- 
-#slick-login input[type="button"] {
-	width: 100%;
-	height: 50px;
-	margin-top: 7px;
-	color: #fff;
-	font-size: 18px;
-	font-weight: bold;
-	text-shadow: 0px -1px 0px #5b6ddc;
-	outline: none;
-	border: 1px solid rgba(0, 0, 0, .49);
- 
-	-webkit-background-clip: padding-box;
-	-moz-background-clip: padding-box;
-	background-clip: padding-box;
-	border-radius: 6px;
- 
-	background-color: #5466da;
-	background-image: -webkit-linear-gradient(bottom, #5466da 0%, #768ee4 100%);
-	background-image: -moz-linear-gradient(bottom, #5466da 0%, #768ee4 100%);
-	background-image: -o-linear-gradient(bottom, #5466da 0%, #768ee4 100%);
-	background-image: -ms-linear-gradient(bottom, #5466da 0%, #768ee4 100%);
-	background-image: linear-gradient(bottom, #5466da 0%, #768ee4 100%);
-	 
-	-webkit-box-shadow: inset 0px 1px 0px #9ab1ec;
-	box-shadow: inset 0px 1px 0px #9ab1ec;
-	 
-	cursor: pointer;
- 
-	-webkit-transition: all .1s ease-in-out;
-	-moz-transition: all .1s ease-in-out;
-	-o-transition: all .1s ease-in-out;
-	-ms-transition: all .1s ease-in-out;
-	transition: all .1s ease-in-out;
-}
- 
-#slick-login input[type="button"]:hover {
-	background-color: #5f73e9;
-	background-image: -webkit-linear-gradient(bottom, #5f73e9 0%, #859bef 100%);
-	background-image: -moz-linear-gradient(bottom, #5f73e9 0%, #859bef 100%);
-	background-image: -o-linear-gradient(bottom, #5f73e9 0%, #859bef 100%);
-	background-image: -ms-linear-gradient(bottom, #5f73e9 0%, #859bef 100%);
-	background-image: linear-gradient(bottom, #5f73e9 0%, #859bef 100%);
- 
-	-webkit-box-shadow: inset 0px 1px 0px #aab9f4;
-	box-shadow: inset 0px 1px 0px #aab9f4;
-	margin-top: 10px;
-}
- 
-#slick-login input[type="button"]:active {
-	background-color: #7588e1;
-	background-image: -webkit-linear-gradient(bottom, #7588e1 0%, #7184df 100%);
-	background-image: -moz-linear-gradient(bottom, #7588e1 0%, #7184df 100%);
-	background-image: -o-linear-gradient(bottom, #7588e1 0%, #7184df 100%);
-	background-image: -ms-linear-gradient(bottom, #7588e1 0%, #7184df 100%);
-	background-image: linear-gradient(bottom, #7588e1 0%, #7184df 100%);
- 
-	-webkit-box-shadow: inset 0px 1px 0px #93a9e9;
-	box-shadow: inset 0px 1px 0px #93a9e9;
-}
-.oauth2 {
-	width: 300px;
-}
-.oauth2-line fieldset{
-	border: 0;
-	border-top: 1px solid #e0e0e0;
-}
-.oauth2-other li {
-	float:left;
-	list-style:none; 
-	}
-.oauth2-other svg{
-	width: 36px;
-	height: 36px;
-}
-
-	</style>
+	<link href='/css/base.css' integrity='sha512-+w1V/SbHV1OFki7whtBt5StUDqLzDiucL+OCTd51BxB/nMDuGMTmfixc8aPxp4XJgjUIZRs8a/NCLa+GlPTvtA==' rel="stylesheet" type="text/css">
+	<link href='/css/auth/user-auth.css' integrity='sha512-6PphPOdABEF4341A5OjzywgaGGWsPaFMfDUTmpX9Z61Yx+MUXkFFwM6ojrLFX+LoPYK+V6wJqeBLdeIQBGyDkQ==' rel="stylesheet" type="text/css">
+	<script src='/js/hash.js' integrity='sha512-WG1Lw6PUdr4gtqJuK1RUPBRvb9E2N9jWkh2BCx/V9imAomTcB3pFa+G4jjozDzYLUgFV5oF8mk/aO2gcygytpw==' async></script>
 </head>
 <body>
-
 	{{template "header"}}
 	<div class="oauth2">
 	<div class="oauth2-login">
@@ -166,7 +23,8 @@
 			<label for="pass">password</label>
 			<input type="password" name="pass" class="placeholder" placeholder="password">
 			<label for="code">code</label>
-			<input type="text" name="code" class="placeholder" placeholder="code" style="display:none">
+			<input type="text" name="code" class="placeholder hide" placeholder="code">
+			<input type="text" name="oauth2" class="hide" value="{{.Oauth2}}">
 			<input type="button" value="Sign in" onclick="auth()">
 		</form>
 	</div>
@@ -178,21 +36,21 @@
 	<div class="oauth2-other">
 	<ul>
 		<li>
-			<a href="/auth/oauth2/login/eudore">
+			<a href="/auth/oauth2/login/eudore?redirect={{.Redirect}}">
 				<svg viewBox="0 0 16 16" version="1.1" aria-hidden="true" alt="eudore">
 					<path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
 				</svg>
 			</a>
 		</li>
 		<li>
-			<a href="/auth/oauth2/login/github">
+			<a href="/auth/oauth2/login/github?redirect={{.Redirect}}">
 				<svg viewBox="0 0 16 16" version="1.1" aria-hidden="true">
 					<path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
 				</svg>
 			</a>
 		</li>
 		<li>
-			<a href="/auth/oauth2/login/google">
+			<a href="/auth/oauth2/login/google?redirect={{.Redirect}}">
 				<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
 					<g fill="none" fill-rule="evenodd">
 					<path d="M482.56 261.36c0-16.73-1.5-32.83-4.29-48.27H256v91.29h127.01c-5.47 29.5-22.1 54.49-47.09 71.23v59.21h76.27c44.63-41.09 70.37-101.59 70.37-173.46z" fill="#4285f4"/>
@@ -205,7 +63,7 @@
 			</a>
 		</li>
 		<li>
-			<a href="/auth/oauth2/login/gitlab">
+			<a href="/auth/oauth2/login/gitlab?redirect={{.Redirect}}">
 				<svg viewBox="0 0 36 36">
 					<path fill="#e24329" d="M2 14l9.38 9v-9l-4-12.28c-.205-.632-1.176-.632-1.38 0z"></path>
 					<path fill="#e24329" d="M34 14l-9.38 9v-9l4-12.28c.205-.632 1.176-.632 1.38 0z"></path>
@@ -235,6 +93,7 @@
 			data.append('login',input[0].value)
 			data.append('pass',input[1].value.SHA256())
 			input[2].value && data.append('code',input[2].value)
+			input[3].value && data.append('oauth2',input[3].value)
 			fetch('/auth/user/auth',{ method: 'POST',credentials: 'include', body: data}).then(function(response) {
 				if (!response.ok) throw new Error(response.statusText)
 				return response.json()
