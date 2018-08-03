@@ -10,16 +10,16 @@ import (
 )
 
 var (
-	sourcegitlab		=	getsource("gitlab")
+	sourcegitlab		=	GetSourceId("gitlab")
 )
 
-type UserGitlab struct {
+type userGitlab struct {
 	Id			int
 	Username	string
 	Email		string
 }
 
-func (u *UserGitlab) ToUser() *AuthInfo{
+func (u *userGitlab) user() *AuthInfo{
 	return &AuthInfo{
 		Source:	sourcegitlab,
 		Id:		strconv.Itoa(u.Id),
@@ -63,7 +63,7 @@ func (o *Oauth2GitlabHandle) Callback(r *http.Request) (*AuthInfo,error) {
 	response, err := http.Get("https://gitlab.com/api/v4/user?access_token=" + token.AccessToken)
 	defer response.Body.Close()
 	contents, err := ioutil.ReadAll(response.Body)
-	var ug UserGitlab
+	var ug userGitlab
 	json.Unmarshal(contents,&ug)
-	return ug.ToUser(),nil
+	return ug.user(),nil
 }

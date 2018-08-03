@@ -43,7 +43,7 @@
     <footer>
         <center>
             <p>©2017 wangEditor.github.io</p>
-            <input id="commit" value="Jass/NL/NL" onkeypress="if(event.keyCode==13){show();return false;}"/>
+            <input id="commit" value="" onkeypress="if(event.keyCode==13){show();return false;}"/>
             <button onclick="show()">show</button>
             <button onclick="commit()">commit</button>
         </center>
@@ -57,7 +57,9 @@
 		    editor.create()
 		}();
         function show(){
-            var path = document.getElementById('commit').value.replace(/\//g,String.fromCharCode(0))
+            var path = document.getElementById('commit').value
+            console.log(path)
+            console.log(path.MD5(32),"sss")
             window.fetch('/note/'+path.MD5(32)+"/content",{ method: 'GET',credentials: 'include'}).then(function(response) {
                 if (!response.ok) throw new Error(response.statusText)
                 return response.json()
@@ -67,7 +69,7 @@
             })
         }
         function commit(){
-            var path = document.getElementById('commit').value.replace(/\//g,String.fromCharCode(0))
+            var path = document.getElementById('commit').value
             var data = editor.txt.html()
             fetch('/note/'+path.MD5(32)+"/content",{ method: 'PUT',credentials: 'include', body: data}).then(function(response) {
                 if (!response.ok) throw new Error(response.statusText)

@@ -10,16 +10,16 @@ import (
 )
 
 var (
-	sourceeudore		=	getsource("eudore")
+	sourceeudore		=	GetSourceId("eudore")
 )
 
-type UserEudore struct {
+type userEudore struct {
 	Id		int
 	Login	string
 	Email	string
 }
 
-func (u *UserEudore) ToUser() *AuthInfo{
+func (u *userEudore) user() *AuthInfo{
 	return &AuthInfo{
 		Source:	sourceeudore,
 		Id:		strconv.Itoa(u.Id),
@@ -41,8 +41,8 @@ func (o *Oauth2EudoreHandle) Config(config *oauth2.Config) *oauth2.Config {
 		o.config = &oauth2.Config{
 			Scopes: []string{"user:email"},
 			Endpoint: oauth2.Endpoint{
-				AuthURL:  "https://wejass.com:8081/auth/user/auth",
-				TokenURL: "https://wejass.com:8081/auth/user/token",
+				AuthURL:  "https://www.wejass.com/auth/user/auth",
+				TokenURL: "https://www.wejass.com/auth/user/token",
 			},
 		}
 	}else{
@@ -66,10 +66,10 @@ func (o *Oauth2EudoreHandle) Callback(r *http.Request) (*AuthInfo,error){
 	defer response.Body.Close()
 	// get user info
 	contents, _ := ioutil.ReadAll(response.Body)
-	res, _ := http.Get("https://wejass.com:8081/auth/user?" + string(contents))
+	res, _ := http.Get("https://www.wejass.com/auth/user?" + string(contents))
 	defer res.Body.Close()
 	con, _ := ioutil.ReadAll(res.Body)
-	var ue UserEudore
+	var ue userEudore
 	json.Unmarshal(con,&ue)
-	return ue.ToUser(),nil
+	return ue.user(),nil
 }

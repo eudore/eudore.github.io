@@ -25,38 +25,34 @@ type CallbackBody struct{
 }
 
 
-func (s *Ossstore) Save(r *http.Request) ([]string, error) {
+func (s *Ossstore) Callback(r *http.Request) (string, error) {
 	log.Json(r.Header)
 	bytePublicKey, err := getPublicKey(r)
 	if err != nil {
-		return nil,err
+		return "",err
 	}
 
 	// Get Authorization bytes : decode from Base64String
 	byteAuthorization, err := getAuthorization(r)
 	if err != nil {
-		return nil,err
+		return "",err
 	}
 
 	// Get MD5 bytes from Newly Constructed Authrization String.
 	byteMD5, bodyContent, err := getMD5FromNewAuthString(r)
 	if err != nil {
-		return nil,err
+		return "",err
 	}
 	// VerifySignature and response to client
 	if verifySignature(bytePublicKey, byteMD5, byteAuthorization) {
-
 		// Do something you want accoding to callback_body ...
-
 		// response OK : 200
 		var body CallbackBody
 		json.Unmarshal(bodyContent, &body)
-		return []string{"/"+body.Filename},nil
-		// responseSuccess(w,&body)
+		return "/"+body.Filename,nil
 	} else {
 		// response FAILED : 400
-		return nil,errors.New("400")
-		//responseFailed(w)
+		return "",errors.New("400")
 	}
 
 }

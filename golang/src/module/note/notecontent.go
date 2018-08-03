@@ -31,7 +31,7 @@ func (n *NoteContent) LoadData() error {
 func (n *NoteContent) Show() {
 	n.EditTime = n.EditTime[:10]
 	switch n.Format {
-	case "rich":
+	case "rich", "md":
 		n.ToHTML = template.HTML(n.Content)
 	default:
 		n.ToHTML = n.Content

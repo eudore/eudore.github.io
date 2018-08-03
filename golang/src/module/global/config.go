@@ -20,15 +20,20 @@ type appconfig struct {
 	Etcd		string		`comment:"Etcd Addr"`
 	Memcache 	string		`comment:"Memcached Addr"`
 	Session		string		`comment:"Session"`
-	Cache		string		`comment:"Cache"`
+	Cache		cacheconfig	`comment:"Cache"`
 }
 
+type cacheconfig struct {
+	Name		string
+	Provider	string		`comment:"Cache provider name"`
+	Config		string		`comment:"Cache config"`
+}
 
 type listenconfig struct {
 	Ip			string		`comment:"Listen Ip Addr" json:"IP"`
 	Port		int			`comment:"Server use port"`
 	Https		bool		`comment:"is https"`
-	Html2		bool		`comment:"is html2"`
+	Http2		bool		`comment:"is html2"`
 	Certfile	string		`comment:"cert file"`
 	Keyfile		string		`comment:"key file"`
 }

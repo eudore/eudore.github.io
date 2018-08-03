@@ -2,12 +2,12 @@ package tools;
 
 import (
     "net/http"
-	"public/router"
+	"module/global"
 )
 
-func init() {
-	mux := router.Instance()
-	mux.GetFunc("/tools/", tools)
+func Reload() error {
+	global.Router.GetFunc("/tools/", tools)
+	return nil
 }
 
 

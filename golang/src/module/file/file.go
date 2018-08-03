@@ -11,7 +11,7 @@ import (
 	"module/global"
 	"module/file/store"
 	_ "module/file/disk"
-//	_ "module/file/oss"
+	_ "module/file/oss"
 )
 
 

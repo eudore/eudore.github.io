@@ -71,7 +71,7 @@ func (srv *Server) ListenAndServe() error {
 }
 
 func (srv *Server) ListenAndServeTLS(certFile, keyFile string) error {
-	if os.Getenv("LISTEN_HTML2") != "" {
+	if os.Getenv("LISTEN_HTTP2") != "" {
 		http2.ConfigureServer(srv.httpServer, &http2.Server{})
 	}
 	addr := srv.httpServer.Addr

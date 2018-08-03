@@ -2,15 +2,24 @@ package user
 
 import (
 	"fmt"
+	"time"
 	"net/http"
 	"net/url"
 	"encoding/gob"
 	"public/log"
+	"public/token"
 	"module/global"
-	"module/tools"
 )
 
-
+const (
+	AuthToken		=	"authtoken"
+	AuthRedirect	=	"redirect"
+	refererHeader	=	"Referer"
+	DefaultRedirect	=	"/"
+	oauth2ClientId	=	"client_id"
+	oauth2Code		=	"code"
+	oauth2State		=	"state"
+)
 
 func init() {
 	gob.Register(Authorize{})
@@ -36,25 +45,27 @@ func (a *Authorize) Redirect(code string) string {
 func (a *Authorize) Check() bool {	
 	return global.Sql.QueryRow("SELECT Name FROM tb_auth_oauth2_app WHERE ClientID=? AND Callback=?;",a.Client_id,a.Redirect_uri).Scan(&a.Name) == nil
 }
+func (a *Authorize) Info() string {
+	return ""
+}
+
 
 func Auth(w http.ResponseWriter, r *http.Request) {
 	sess,_ := global.Session.SessionStart(w, r)
-	defer sess.SessionRelease(w)
 	// save redirect
 	redirect := r.Header.Get("Referer")
 	if redirect == ""  {
-		redirect = "/"
+		redirect = DefaultRedirect
 	}
-	sess.Set("redirect",redirect)
 	// is login
 	user := sess.Get("user")	
 	if user != nil {
-//		Login(w,r)
 		http.Redirect(w, r, redirect, http.StatusPermanentRedirect)
 		return
 	}
 	// oauth2 request
 	r.ParseForm()
+	var oauthinfo string
 	if r.Form["client_id"] != nil {
 		a := Authorize{
 			Response_type:	r.Form["response_type"][0],
@@ -64,46 +75,49 @@ func Auth(w http.ResponseWriter, r *http.Request) {
 			State:			r.Form["state"][0],
 		}
 		if a.Check() {
-			// 
-			sess.Set("authorize",a)
-			log.Json(sess.Get("authorize"))
+			// load oauth2
+			oauthinfo = r.Form["client_id"][0] + r.Form["state"][0] 
+			log.Info(oauthinfo)
 		} else {
 			// invalid clientid error
+			http.Error(w,http.StatusText(403),http.StatusUnauthorized)
 		}
-		// invalid clientid
 	}
 	// login
-	w.Header().Set("Authorization","Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwYXRoIjoiL2ZpbGUvIiwic3ViIjpudWxsLCJtZXRob2QiOjYsImV4cHJpZXMiOjE1Mjk4NDgyMjh9.Es__xkRNwj6u6Q6sJDyMI9g507A3QTDHJtFD-k8HgPA ")
-
-	tools.Template(w,"auth/user/auth.html",map[string]interface{}{})
+	global.Template(w,"auth/user/auth.html",map[string]interface{}{"Redirect": redirect,"Oauth2": oauthinfo})
 }
 
 func Authpass(w http.ResponseWriter, r *http.Request) {
-	sess,err := global.Session.SessionStart(w, r)
-	defer sess.SessionRelease(w)
-	r.ParseForm()
 	// check pass
+	r.ParseForm()
 	var uid int
-	login := r.Form["login"][0]
-	pass := r.Form["pass"][0]
-	err = global.Sql.QueryRow("SELECT UID FROM tb_auth_oauth2_pass WHERE Login=? AND Pass=?",login,pass).Scan(&uid)
+	login := r.Form.Get("login")
+	pass := r.Form.Get("pass")
+	log.Info(login, pass)
+	err := global.Sql.QueryRow("SELECT UID FROM tb_auth_oauth2_pass WHERE Login=? AND Pass=?",login,pass).Scan(&uid)
 	if err != nil || uid == 0 {
 		log.Info(err)
 		return
 	}
 	// oauth2 requert
-	a := sess.Get("authorize")
-	if a != nil {
+	oauthinfo := r.Form.Get("oauth2")
+	if len(oauthinfo) != 0 {
 		// get code
 		code := "code???"
 		// callback
-		au := a.(Authorize)
-		log.Info(au.Redirect(code))
-		http.Redirect(w, r, au.Redirect(code), http.StatusFound)
+		log.Info(oauthinfo)
+		http.Redirect(w, r, oauthinfo + code, http.StatusFound)
 		return
 	}
 	// simple login
-	sess.Set("user", *(NewUser(uid)))
+	hmacSampleSecret := []byte("secret")
+	token.AkSet("secret", hmacSampleSecret)
+	to := token.NewWithClaims( token.SigningMethodHS256, &token.MapClaims{
+		"uid":		uid,
+		"ak":		hmacSampleSecret,
+		"expires":	time.Now().Add(100 * time.Second).Unix(),
+	})
+	t , _ := to.SignedString(hmacSampleSecret)
+	r.Form.Set(AuthToken, t)
 	Login(w,r)
-	// return code state
 }

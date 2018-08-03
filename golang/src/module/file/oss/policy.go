@@ -86,7 +86,7 @@ func (s *Ossstore) Signed(p *store.Policy) []byte {
 
 	// callback args
 	var callbackParam CallbackParam
-	callbackParam.CallbackUrl = p.Host + "/" + url.QueryEscape(p.Directory)+"?oss"
+	callbackParam.CallbackUrl = p.Host + "/" + url.QueryEscape(p.Directory)+"?callback"
 	callbackParam.CallbackBody = callbackBody
 	callbackParam.CallbackBodyType = callbackBodyType	
 	indent,_ = json.MarshalIndent(&callbackParam, "", "\t")

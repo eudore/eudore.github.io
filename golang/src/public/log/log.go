@@ -157,6 +157,23 @@ func (l *Logger) Output(level,calldepth int, s string) error {
 	return err
 }
 
+func stacks(all bool) []byte {
+	// We don't know how big the traces are, so grow a few times if they don't fit. Start large, though.
+	n := 10000
+	if all {
+		n = 100000
+	}
+	var trace []byte
+	for i := 0; i < 5; i++ {
+		trace = make([]byte, n)
+		nbytes := runtime.Stack(trace, all)
+		if nbytes < len(trace) {
+			return trace[:nbytes]
+		}
+		n *= 2
+	}
+	return trace
+}
 
 func (l *Logger) Debug(args ...interface{}) {
 	l.Output(DEBUG,2,fmt.Sprint(args...))

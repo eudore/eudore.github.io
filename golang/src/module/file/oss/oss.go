@@ -25,10 +25,12 @@ type Ossstore struct {
 
 
 func (s *Ossstore) Load(w http.ResponseWriter, p string) error {
-	http.Redirect(w,r,s.Host + s.Dir + p,302)
+	//http.Redirect(w,r,s.Host + s.Dir + p,302)
 	return nil
 }
-
+func (s *Ossstore) Save(*http.Request, string) error {
+	return nil
+}
 func New(config string) (store.Store, error) {
 	var oss Ossstore
 	err := json.Unmarshal([]byte(config), &oss)

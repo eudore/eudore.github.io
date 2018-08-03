@@ -12,7 +12,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"public/router"
-	"public/session"
 	"module/global"
 //	"module/tools"
 	"database/sql"
@@ -28,21 +27,25 @@ var (
 	stmtUpdateNoteFormat	*sql.Stmt
 	)	
 
-var globalSessions *session.Manager;
 var globalDB *sql.DB
 
 func init() {
 	// router
 	mux := router.New()
+	// api
+	mux.GetFunc("/api/corn/*",getnote)
+	mux.GetFunc("/api/share/*",getnote)
+	mux.GetFunc("/api/format/:format",getnote)
+
 	rhash := "/#index^[0-9a-z]{32,32}$/content"
 	mux.GetFunc(rhash, getcontent)
 	mux.PostFunc(rhash, postcontent)
 	mux.PutFunc(rhash, putcontent)
 	mux.DeleteFunc(rhash, delcontent)
 	mux.DeleteFunc("/api/#index^[0-9a-z]{32,32}$/content", delcontent)
-	
 	mux.GetFunc("/#index^[0-9a-z]{32,32}$/index", getindex)
 	mux.PostFunc("/#index^[0-9a-z]{32,32}$/index", getindex)
+	// note
 	mux.GetFunc(":user/*", getnote)
 	mux.GetFunc(":user", getnote)
 	mux.PostFunc(":user/*", upnote)
@@ -52,7 +55,6 @@ func init() {
 
 func Reload() error {
 	globalDB = global.Sql
-	globalSessions = global.Session
 	stmtQueryPathHash = global.Stmt("SELECT Path,Hash,PHash FROM tb_note_save;")
 	stmtQueryNoteData = global.Stmt("SELECT EditTime,Title,Format,Content FROM tb_note_save WHERE Hash=?;")
 	stmtUpdatePathHash = global.Stmt("UPDATE tb_note_save SET Hash=?,PHash=? WHERE Hash=?;")
@@ -130,13 +132,23 @@ func PathHash(path string) string{
 	return hex.EncodeToString(md5Ctx.Sum(nil))
 }
 
+func GetAction(r *http.Request) string {
+	return ""
+}
+
+func GetResource(r *http.Request) string {
+	if strings.HasPrefix(r.URL.Path,"/api/") {
+		return r.URL.Path[5:]
+	}
+	return r.URL.Path
+}
 /*
 action:
-	readnote
+	readnote 	get
+	createnote 	put
+	updatenote  post
+	deletenote  delete
 	sharenote
-	createnote
-	updatenote
-	deletenote
 
 	updateformat
 	formathtml

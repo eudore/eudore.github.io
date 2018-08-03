@@ -3,25 +3,25 @@ package user
 import (
 	"time"
 	"net/http"
-	"database/sql"
 	"public/log"
 	"module/global"
 	"module/tools"
 	"module/auth/oauth2"
 )
 
-var stmtQueryUserId,stmtInsertUser,stmtUpdateSignUp *sql.Stmt
 
 func Signup(w http.ResponseWriter, r *http.Request) {
-	sess,_ := global.Session.SessionStart(w, r)
-	a := sess.Get("oauth2")
-	if a != nil {
+	r.ParseForm()
+	authtoken := r.Form.Get(AuthToken)
+	redirect := r.Form.Get(AuthRedirect)
+	log.Info(authtoken)
+	//if authtoken != "" {
 		// oauth2 sign up
-		a2 := a.(oauth2.AuthInfo)
-		tools.Template(w,"auth/user/signup.html",map[string]interface{}{"AuthInfo": a2,"Source": a2.GetSource()})
-	}else {
+		err := global.Template(w,"auth/user/signup.html",map[string]interface{}{"Redirect": redirect, "Source": oauth2.GetSourceName(2)})
+		log.Info(err)
+	//}else {
 		// user sign up
-	}
+	//}
 }
 
 func SignupSubmit(w http.ResponseWriter, r *http.Request) {

@@ -20,7 +20,7 @@ func (ci *configinfo) getmode() []string {
 				break
 			}
 		}
-		if b{
+		if b && ve != ""{
 			d=append(d,ve)
 		}
 	}

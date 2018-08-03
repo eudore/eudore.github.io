@@ -9,13 +9,14 @@
 	<meta name="viewport" content="width=device-width,user-scalable=no">
 	<link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
 	<link href='/css/base.css' rel="stylesheet" type="text/css">
-	<script src='/js/zepto.min.js' async></script>
+	<script src='/js/lib/zepto.min.js' async></script>
 </head>
 <body>
 	{{template "header"}}
 	<div>
 		<table>
 			<tbody>
+			{{if eq .Source "" }}
 				<tr>
 					<td>认证来源</td>
 					<td>{{.Source}}</td>
@@ -28,21 +29,51 @@
 					<td>认证邮件</td>
 					<td>{{.AuthInfo.Email}}</td>
 				</tr>
+			{{else}}
+				<tr>
+					<td>邮箱</td>
+					<td>
+						<input type="text" name="email" placeholder="your name">
+					</td>
+				</tr>
+				<tr>
+					<td>输入密码</td>
+					<td>
+						<input type="text" name="pass" placeholder="pass">
+					</td>
+				</tr>
+				<tr>
+					<td>确认密码</td>
+					<td>
+						<input type="password" name="email" placeholder="pass">
+					</td>
+				</tr>
+			{{end}}
 				<tr>
 					<td>创建用户</td>
 					<td>
-						<input id="username" type="text" name="" value="{{.AuthInfo.Name}}" placeholder="your name">
+						<input type="text" name="login" value="{{.AuthInfo.Name}}" placeholder="your name">
+					</td>
+				</tr>
+				<tr>
+					<td colspan="2">
+						<a href="">注册协议</a>
+					</td>
+				</tr>
+				<tr>
+					<td colspan="2">
+						<button onclick="submit()">注册</button>
 					</td>
 				</tr>
 			</tbody>
 		</table>
-		
-		<button onclick="submit()">确认</button>
-		<button>取消</button>
 	</div>
+	{{template "footer"}}
 	<script>
 		function submit() {
-			fetch('/auth/user/signup?'+$("#username").val(),{ method: 'POST',credentials: 'include'}).then(function(response) {
+			var data = new URLSearchParams()
+			data.append("login", $("#username").val())
+			fetch('/auth/user/signup',{ method: 'POST',credentials: 'include', body: data}).then(function(response) {
 				if (!response.ok) throw new Error(response.statusText)
 				return response.json()
 			}).then(function(data){

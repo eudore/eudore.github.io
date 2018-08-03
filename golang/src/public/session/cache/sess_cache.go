@@ -16,8 +16,8 @@ import (
 var mempder = &MemProvider{}
 var client kv.Cache
 
-// SessionStore memcache session store
-type SessionStore struct {
+// CacheStore memcache session store
+type CacheStore struct {
 	sid         string
 	lock        sync.RWMutex
 	values      map[interface{}]interface{}
@@ -25,7 +25,7 @@ type SessionStore struct {
 }
 
 // Set value in memcache session
-func (rs *SessionStore) Set(key, value interface{}) error {
+func (rs *CacheStore) Set(key, value interface{}) error {
 	rs.lock.Lock()
 	defer rs.lock.Unlock()
 	rs.values[key] = value
@@ -33,7 +33,7 @@ func (rs *SessionStore) Set(key, value interface{}) error {
 }
 
 // Get value in memcache session
-func (rs *SessionStore) Get(key interface{}) interface{} {
+func (rs *CacheStore) Get(key interface{}) interface{} {
 	rs.lock.RLock()
 	defer rs.lock.RUnlock()
 	if v, ok := rs.values[key]; ok {
@@ -43,7 +43,7 @@ func (rs *SessionStore) Get(key interface{}) interface{} {
 }
 
 // Delete value in memcache session
-func (rs *SessionStore) Delete(key interface{}) error {
+func (rs *CacheStore) Delete(key interface{}) error {
 	rs.lock.Lock()
 	defer rs.lock.Unlock()
 	delete(rs.values, key)
@@ -51,7 +51,7 @@ func (rs *SessionStore) Delete(key interface{}) error {
 }
 
 // Flush clear all values in memcache session
-func (rs *SessionStore) Flush() error {
+func (rs *CacheStore) Flush() error {
 	rs.lock.Lock()
 	defer rs.lock.Unlock()
 	rs.values = make(map[interface{}]interface{})
@@ -59,12 +59,12 @@ func (rs *SessionStore) Flush() error {
 }
 
 // SessionID get memcache session id
-func (rs *SessionStore) SessionID() string {
+func (rs *CacheStore) SessionID() string {
 	return rs.sid
 }
 
 // SessionRelease save session values to memcache
-func (rs *SessionStore) SessionRelease(w http.ResponseWriter) {
+func (rs *CacheStore) SessionRelease(w http.ResponseWriter) {
 	b, err := session.EncodeGob(rs.values)
 	if err != nil {
 		return
@@ -110,7 +110,7 @@ func (rp *MemProvider) SessionRead(sid string) (session.Store, error) {
 			return nil, err
 		}
 	}
-	rs := &SessionStore{sid: sid, values: kv, maxlifetime: rp.maxlifetime}
+	rs := &CacheStore{sid: sid, values: kv, maxlifetime: rp.maxlifetime}
 	return rs, nil
 }
 
@@ -143,7 +143,7 @@ func (rp *MemProvider) SessionRegenerate(oldsid, sid string) (session.Store, err
 		}
 	}
 
-	rs := &SessionStore{sid: sid, values: kv, maxlifetime: rp.maxlifetime}
+	rs := &CacheStore{sid: sid, values: kv, maxlifetime: rp.maxlifetime}
 	return rs, nil
 }
 

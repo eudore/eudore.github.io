@@ -12,6 +12,7 @@ package router
 import (
 	"context"
 	"net/http"
+	"public/log"
 )
 
 // contextKeyType is a private struct that is used for storing bone values in net.Context
@@ -24,6 +25,7 @@ var contextKey = contextKeyType{}
 func GetAllValues(req *http.Request) map[string]string {
 	values, ok := req.Context().Value(contextKey).(map[string]string)
 	if ok {
+		log.Json(values)
 		return values
 	}
 

@@ -8,6 +8,7 @@ sftp-config.json
 /config/conf.json
 /config/nginx/openssl-*
 /golang/src/index
+/golang/src/eudore/
 /golang/src/gomemcache/
 /golang/src/gateway/
 /golang/src/search/

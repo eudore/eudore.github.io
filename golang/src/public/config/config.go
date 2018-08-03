@@ -1,11 +1,10 @@
-package config;
- 
+package config
+
 import (
+	"encoding/json"
 	"fmt"
 	"os"
-	"encoding/json"
 )
-
 
 var defaultconfig interface{}
 var configinfos map[interface{}]*configinfo
@@ -16,10 +15,11 @@ func Reload() error {
 	ReadFlag(defaultconfig)
 	ReadEnv(defaultconfig)
 	if configinfos[defaultconfig].Test {
-		indent,_ := json.MarshalIndent(defaultconfig, "", "\t")
+		indent, _ := json.MarshalIndent(defaultconfig, "", "\t")
 		fmt.Println(string(indent))
+		os.Exit(0)
 	}
-	if configinfos[defaultconfig].Test {
+	if configinfos[defaultconfig].Help {
 		Help(defaultconfig)
 		os.Exit(0)
 	}
@@ -32,5 +32,5 @@ func SetDf(df interface{}) {
 
 func init() {
 	configinfos = make(map[interface{}]*configinfo)
-	SetReload("config", 0x00,Reload)
+	SetReload("config", 0x00, Reload)
 }

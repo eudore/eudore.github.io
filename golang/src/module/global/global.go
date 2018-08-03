@@ -2,10 +2,8 @@ package global
 
 
 import (
-	"net/http"
 	"encoding/json"
 	"database/sql"
-	"github.com/NYTimes/gziphandler"
 	"public/cache"
 	"public/session"
 	"public/router"
@@ -14,9 +12,7 @@ import (
 
 // config
 var Config *config;
-
 // Singleton
-var Gw http.Handler 
 var Cache cache.Cache
 var Session *session.Manager;
 var Router *router.Mux
@@ -29,12 +25,12 @@ func init(){
 	}
 	// router
 	Router = router.New()
-	Gw = gziphandler.GzipHandler(&gw{})
 }
 
 func Reload() (err error) {
 	// cache
-	//Cache,_ = cache.NewCache(Config.App.Cache)
+	Cache,err = cache.NewCache(Config.App.Cache.Provider, Config.App.Cache.Config)
+	log.Info("Cache: ",err)
 	// session
 	sessionConfig := &session.ManagerConfig{}
 	json.Unmarshal([]byte(Config.App.Session),sessionConfig)
@@ -42,6 +38,7 @@ func Reload() (err error) {
 	log.Info("Session: ",err)
 	// sql
 	Sql,err = sql.Open("mysql",Config.App.Mysql)
+	Sql.SetMaxIdleConns(0)
 	log.Info("Sql: ",err)
 	return
 }

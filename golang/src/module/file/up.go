@@ -13,6 +13,7 @@ func fileup(w http.ResponseWriter, r *http.Request) {
 	zone := router.GetValue(r, "zone")
 	log.Info(r.URL.Path)
 	fs,err := store.Getstore(user+"/"+zone)
+	log.Json(fs)
 	if err!=nil {
 		w.WriteHeader(http.StatusNotFound) 
 		return

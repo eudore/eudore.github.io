@@ -20,7 +20,7 @@ type SetConfig interface {
 	SetData(arg string) error
 }
 
-
+// Output struct commment info
 func Help(c interface{}) {
 	getcomment(c,"  --")
 	getcomment(configinfos[c],"  --")
@@ -50,6 +50,7 @@ func getcomment(p interface{},prefix string) {
 	}
 }
 
+// Set Data
 func SetData(p interface{},arg string) error{
 	kv := append(strings.SplitN(arg,"=",2),"")
 	d,err := Data(p,kv[0])
@@ -71,12 +72,11 @@ func Data(p interface{}, arg string) (reflect.Value, error) {
 		for pv.Kind() == reflect.Ptr || pv.Kind() == reflect.Interface {
 			pv= pv.Elem()
 		}
-		fmt.Println("\n----- ",pv.Kind(),pv.Type().Kind(),fs[i])
+		//fmt.Println("\n----- ",pv.Kind(),pv.Type().Kind(),fs[i])
 		if pv.Kind() == reflect.Struct {
 			f,ok := pv.Type().FieldByName(strings.Title(fs[i]))
 			if !ok{
 				// error
-				fmt.Println(errArg)
 				return pv,errArg
 			}
 			pv = pv.Field(f.Index[0])
@@ -125,8 +125,8 @@ func setvalue(v reflect.Value,s string) error {
 		fmt.Println("Interface Map")
 		return json.Unmarshal([]byte(s),v.Interface())
 	case reflect.Interface:
-		v.Set(reflect.ValueOf(s))
 		fmt.Println("Interface")
+		v.Set(reflect.ValueOf(s))
 	default:
 		fmt.Println("default")
 		return errValue

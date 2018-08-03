@@ -26,7 +26,7 @@ var globalCache cache.Cache;
 func init() {
 	conf = config.Instance()
 	sessionConfig := &session.ManagerConfig{}
-	json.Unmarshal([]byte(conf.Session),sessionConfig)
+	json.Unmarshal([]byte(conf.App.Session),sessionConfig)
 	globalSessions, _ = session.NewManager("memcache", sessionConfig)
 	go globalSessions.GC()
 	//var err error;

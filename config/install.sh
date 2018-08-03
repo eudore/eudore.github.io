@@ -1,6 +1,6 @@
 #!/bin/bash
 _run_server(){
-	docker run -d --restart=always -p 2379:2379 -p 2380:2380 etcd
+	docker run -d --restart=always -p 2379:2379 -p 2380:2380 -v /data/docker/etcd/node1:/node1.etcd -e ETCD_NAME=node1 -e ETCD_ADVERTISE_CLIENT_URLS=http://0.0.0.0:2379 -e ETCD_LISTEN_CLIENT_URLS=http://0.0.0.0:2379 etcd
 	docker run -d --restart=always -p 3306:3306 -v /data/docker/mariadb:/var/lib/mysql/ mariadb
 	docker run -d --restart=always -p 12001:11211 memcached memcached -m 64 -U 0
 	docker run -d --restart=always -p 12002:11211 memcached memcached -m 64 -U 0

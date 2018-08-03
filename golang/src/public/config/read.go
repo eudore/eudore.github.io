@@ -11,7 +11,7 @@ import (
 	"encoding/json"
 )
 
-
+// Read config
 func ReadConfig(c interface{}) error {
 	// change workspace
 	os.Chdir(ReadSys("workdir"))
@@ -35,6 +35,7 @@ func ReadConfig(c interface{}) error {
 	return nil
 }
 
+// Read mode load config
 func ReadMode(c interface{}) error {
 	info,ok := configinfos[c]
 	if !ok {
@@ -52,7 +53,9 @@ func ReadMode(c interface{}) error {
 	return nil
 }
 
+// Read args to config
 func ReadFlag(c interface{}) {
+	var err error
 	info := configinfos[c]
 	for _,v := range os.Args[1:] {
 		if !strings.HasPrefix(v, "--") {
@@ -62,20 +65,17 @@ func ReadFlag(c interface{}) {
 		kv := strings.SplitN(v[2:],"=",2)
 		switch kv[0]{
 		case "test","help","enable","disable","mode":
-			SetData(info, v[2:])
-		// case "flag":
-		// case "mode":
-		// 	continue
-		// case "help":
-		// 	os.Exit(0)
+			err = SetData(info, v[2:])
 		default:
-			SetData(c, v[2:])
-			continue
+			err = SetData(c, v[2:])
 		}
-		fmt.Println("error args",v)
+		if err != nil {
+			fmt.Println("error:",err,v)
+		}
 	}
 }
 
+// Read env to config
 func ReadEnv(c interface{}) {
 	for _, value := range os.Environ() {
 		if strings.HasPrefix(value, "ENV_") {

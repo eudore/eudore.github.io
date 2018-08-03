@@ -9,7 +9,8 @@ import (
 
 
 func TestPut(t *testing.T) {
-	errFile,_:=os.OpenFile("access.log",os.O_CREATE|os.O_WRONLY|os.O_APPEND,0666)
+	errFile,err :=os.OpenFile("access.log",os.O_CREATE|os.O_WRONLY|os.O_APPEND,0666)
+	t.Log(err)
 	out := log.New(io.MultiWriter(os.Stderr,errFile), log.LstdFlags | log.Lshortfile)
 	out.Info("info---")
 	out.Output(log.DEBUG,1,"test DEBUG")

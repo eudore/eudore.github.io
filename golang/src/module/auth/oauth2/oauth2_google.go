@@ -9,16 +9,16 @@ import (
 )
 
 var (
-	sourcegoogle		=	getsource("google")
+	sourcegoogle		=	GetSourceId("google")
 )
 
-type UserGoogle struct {
+type userGoogle struct {
 	Id		string
 	Name	string
 	Email	string
 }
 
-func (u *UserGoogle) ToUser() *AuthInfo{
+func (u *userGoogle) user() *AuthInfo{
 	return &AuthInfo{
 		Source:	sourcegoogle,
 		Id:		u.Id,
@@ -62,7 +62,7 @@ func (o *Oauth2GoogleHandle) Callback(r *http.Request) (*AuthInfo,error) {
 	response, err := http.Get("https://www.googleapis.com/oauth2/v2/userinfo?access_token=" + token.AccessToken)
 	defer response.Body.Close()
 	contents, err := ioutil.ReadAll(response.Body)
-	var ug UserGoogle
+	var ug userGoogle
 	json.Unmarshal(contents,&ug)
-	return ug.ToUser(),nil
+	return ug.user(),nil
 }

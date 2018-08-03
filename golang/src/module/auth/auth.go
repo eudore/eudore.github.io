@@ -5,26 +5,21 @@ import (
 	"net/http"
 	// "encoding/json"
 	"html/template"
-	"public/config"
 	"public/router"
 	"public/session"
 	"public/log"
 	"module/global"
 	"module/auth/oauth2"
+	"module/auth/ram"
 	"module/auth/user"
 )  
 
-var conf *config.Config;
 var globalSessions *session.Manager;
 
 func init() {
 	globalSessions = global.Session
 	mux := router.New()
-	rlogin := "/login"
-	mux.GetFunc(rlogin, logshow)
-	mux.PostFunc(rlogin, login)
-	mux.DeleteFunc(rlogin, logout)
-	mux.PostFunc("/user/:name", usernew)
+	// mux.PostFunc("/user/:name", usernew)
 	mux.GetFunc("/projetc/new", projectnew)
 	mux.PostFunc("/projetc/:name", projectnew)
 	mux.PostFunc("/projetc/:name/snippets", projectnew)
@@ -44,11 +39,12 @@ func init() {
 	mux.SubRoute("/oauth2/login",r1)
 	mux.SubRoute("/oauth2/callback",r2)
 
-	router.Instance().SubRoute("/auth",mux)
+	global.Router.SubRoute("/auth",mux)
 }
 
 func Reload() error{
 	oauth2.Reload()
+	ram.Reload()
 	user.Reload()
 	return nil
 }

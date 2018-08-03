@@ -11,16 +11,16 @@ import (
 )
 
 var (
-	sourcegithub		=	getsource("github")
+	sourcegithub		=	GetSourceId("github")
 )
 
-type UserGithub struct {
+type userGithub struct {
 	Id		int
 	Login	string
 	Email	string
 }
 
-func (u *UserGithub) ToUser() *AuthInfo{
+func (u *userGithub) user() *AuthInfo{
 	return &AuthInfo{
 		Source:	sourcegithub,
 		Id:		strconv.Itoa(u.Id),
@@ -67,7 +67,7 @@ func (o *Oauth2GithubHandle) Callback(r *http.Request) (*AuthInfo,error) {
 	res, _ := http.Get("https://api.github.com/user?" + string(contents))
 	defer res.Body.Close()
 	con, _ := ioutil.ReadAll(res.Body)
-	var ug UserGithub
+	var ug userGithub
 	json.Unmarshal(con,&ug)
-	return ug.ToUser(),nil
+	return ug.user(),nil
 }

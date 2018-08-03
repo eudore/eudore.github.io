@@ -17,7 +17,7 @@ func fileget(w http.ResponseWriter, r *http.Request) {
 	user := router.GetValue(r, "user")
 	zone := router.GetValue(r, "zone")
 	fs,err := store.Getstore(user+"/"+zone)
-	//log.Json(fs)
+//	log.Json(fs)
 	if err!=nil {
 		w.WriteHeader(http.StatusNotFound) 
 		return
