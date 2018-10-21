@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<script src='https://cdn.wejass.com/js/react/react.js' integrity='sha512-16bW0/SLFqiVplbCEQ1fDu6qi6Nn2Qx7GdDN2PBciMofFwBNNFjBEMhUUEtXodrmxHWZ5+T1VbWAnVi9GsWHEA==' crossorigin="anonymous"></script>
+		<script src='https://cdn.wejass.com/js/react/react-dom.js' integrity='sha512-h03W2AaAyBuIhy/HBK3bgT7gaIPOasQEH2K0hxPatnMt/03lu0uM39exrfdmEH7V4EM/J9LvAHj7IShoIjNM/Q==' crossorigin="anonymous"></script>
+		<script src='https://cdn.wejass.com/js/react/browser.min.js' integrity='sha512-j0PI8qnIfvgJQ6wUs1dOfX+hPQGE60BWn8sMXJBUCN0/oMTswCAJYglcfY6abQXm1FGdLAiq+oTU9Y316wDAGw==' crossorigin="anonymous"></script> 
+	</head>
+	<body>
+		<div id="root"></div>
+		<script type="text/babel">
+
+			// ** Our code goes here! **
+			function tick() {
+				class Welcome extends React.Component {
+					render() {
+						return (
+							<div>
+								<h1>Hello, {this.props.name}</h1>
+							</div>
+						);
+					}
+				}
+				const element = (
+					<div>
+						<Welcome name="Sara" />
+						<Welcome name="Cahal" />
+						<h2>It is {new Date().toLocaleTimeString()}.</h2>
+					</div>
+				);
+				ReactDOM.render(
+					element,
+					document.getElementById('root')
+				);
+			}
+
+			setInterval(tick, 1000);
+		</script>
+	</body>
+</html>

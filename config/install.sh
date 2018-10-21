@@ -2,9 +2,19 @@
 _run_server(){
 	docker run -d --restart=always -p 2379:2379 -p 2380:2380 -v /data/docker/etcd/node1:/node1.etcd -e ETCD_NAME=node1 -e ETCD_ADVERTISE_CLIENT_URLS=http://0.0.0.0:2379 -e ETCD_LISTEN_CLIENT_URLS=http://0.0.0.0:2379 etcd
 	docker run -d --restart=always -p 3306:3306 -v /data/docker/mariadb:/var/lib/mysql/ mariadb
+	docker run -d --restart=always -p 5432:5432 -v /data/docker/postgresql:/var/lib/postgresql/data postgres
 	docker run -d --restart=always -p 12001:11211 memcached memcached -m 64 -U 0
 	docker run -d --restart=always -p 12002:11211 memcached memcached -m 64 -U 0
 	docker run -d --restart=always -p 12003:11211 memcached memcached -m 64 -U 0
+	# docker run -d --restart=always -p 8020:80 -e GOROOT=$GOROOT -e GOPATH=$GOPATH -v $GOROOT:$GOROOT godoc:go1.10
+	# gogs	
+	docker run -d --restart=unless-stopped -p 3010:8080 -v /data/docker/ranchermy/mysql:/var/lib/mysql rancher/server
+
+	docker run --restart=always --name gogsdb -v /data/docker/gogsdb:/var/lib/postgresql/data -e POSTGRES_USER=gogs -e POSTGRES_PASSWORD=gogs -e POSTGRES_DB=gogs -d postgres
+	docker run -d --restart=always --link gogsdb -p 1022:22 -p 3000:3000 -v /data/docker/gogs:/data gogs/gogs
+	# sonar
+	# docker run --name postgresqldb --restart=always -v /data/docker/postgresql:/var/lib/postgresql/data -e POSTGRES_USER=sonar -e POSTGRES_PASSWORD=sonar -e POSTGRES_DB=sonar -d postgres
+	# docker run --name sonarqube --restart=always --link postgresqldb -e SONARQUBE_JDBC_USERNAME=sonar -e SONARQUBE_JDBC_PASSWORD=sonar -e SONARQUBE_JDBC_URL=jdbc:postgresql://postgresqldb:5432/sonar -v /data/docker/sonar/data:/opt/sonarqube/data -v /data/docker/sonar/extensions:/opt/sonarqube/extensions -p 9000:9000 -d sonarqube
 }
 _install_nginx(){
 	id nginx || useradd nginx
@@ -23,6 +33,22 @@ _install_nginx(){
 	cd /tmp/nginx-1.13.0
 #	./configure --prefix=/usr/share/nginx --sbin-path=/usr/sbin/nginx --conf-path=/etc/nginx/nginx.conf --error-log-path=/var/log/nginx/error.log --http-log-path=/var/log/nginx/access.log --http-client-body-temp-path=/var/lib/nginx/tmp/client_body --http-proxy-temp-path=/var/lib/nginx/tmp/proxy --http-fastcgi-temp-path=/var/lib/nginx/tmp/fastcgi --http-uwsgi-temp-path=/var/lib/nginx/tmp/uwsgi --http-scgi-temp-path=/var/lib/nginx/tmp/scgi --pid-path=/run/nginx.pid --lock-path=/run/lock/subsys/nginx --user=nginx --group=nginx --with-file-aio --with-http_ssl_module --with-http_realip_module --with-http_addition_module --with-http_auth_request_module --with-http_sub_module --with-http_dav_module --with-http_flv_module --with-http_mp4_module --with-http_gunzip_module --with-http_gzip_static_module --with-http_random_index_module --with-http_secure_link_module --with-http_degradation_module --with-http_stub_status_module --with-mail_ssl_module --with-pcre --with-pcre-jit
 	./configure --prefix=/usr/share/nginx --sbin-path=/usr/sbin/nginx --conf-path=/etc/nginx/nginx.conf --error-log-path=/var/log/nginx/error.log --http-log-path=/var/log/nginx/access.log --http-client-body-temp-path=/var/lib/nginx/tmp/client_body --http-proxy-temp-path=/var/lib/nginx/tmp/proxy --http-fastcgi-temp-path=/var/lib/nginx/tmp/fastcgi --http-uwsgi-temp-path=/var/lib/nginx/tmp/uwsgi --http-scgi-temp-path=/var/lib/nginx/tmp/scgi --pid-path=/run/nginx.pid --lock-path=/run/lock/subsys/nginx --user=nginx --group=nginx --with-file-aio --with-openssl=../openssl --with-openssl-opt='enable-tls1_3' --with-http_ssl_module --with-http_v2_module --with-http_realip_module --with-http_addition_module --with-http_auth_request_module --with-http_sub_module --with-http_dav_module --with-http_flv_module --with-http_mp4_module --with-http_gunzip_module --with-http_gzip_static_module --with-http_random_index_module --with-http_secure_link_module --with-http_degradation_module --with-http_stub_status_module --with-mail_ssl_module --with-pcre --with-pcre-jit --add-module=../nginx-ct-1.3.2/ --add-module=../oauth-mem
+	make && make install
+}
+_install_nginx1.5() {
+	id nginx || useradd nginx
+	groups nginx || groupadd -g nginx nginx
+	mkdir -pv /var/lib/nginx/tmp
+	yum -y install gcc gcc-c++ git wget automake pcre pcre-devel zlib-devel openssl openssl-devel
+	cd /tmp
+	wget -O nginx-ct.zip -c https://github.com/grahamedgecombe/nginx-ct/archive/v1.3.2.zip && unzip nginx-ct.zip
+	git clone -b OpenSSL_1_1_1-pre7 https://github.com/openssl/openssl.git openssl
+	wget -P /tmp/ http://nginx.org/download/nginx-1.15.3.tar.gz && tar axf /tmp/nginx-1.15.3.tar.gz
+	sed -i '/^#define NGINX_VERSION /s/1.15.3/1.0.0/g;/^#define NGINX_VER /s/nginx/wejass/g' /tmp/nginx-1.15.3/src/core/nginx.h
+	sed -i '/^static u_char ngx_http_server_string/s/nginx/wejass/g' /tmp/nginx-1.15.3/src/http/ngx_http_header_filter_module.c
+	sed -i '/^"<hr><center>nginx/s/nginx/wejass/g' /tmp/nginx-1.15.3/src/http/ngx_http_special_response.c
+	cd /tmp/nginx-1.15.3/
+	./configure --prefix=/usr/share/nginx --sbin-path=/usr/sbin/nginx --conf-path=/etc/nginx/nginx.conf --error-log-path=/var/log/nginx/error.log --http-log-path=/var/log/nginx/access.log --http-client-body-temp-path=/var/lib/nginx/tmp/client_body --http-proxy-temp-path=/var/lib/nginx/tmp/proxy --http-fastcgi-temp-path=/var/lib/nginx/tmp/fastcgi --http-uwsgi-temp-path=/var/lib/nginx/tmp/uwsgi --http-scgi-temp-path=/var/lib/nginx/tmp/scgi --pid-path=/run/nginx.pid --lock-path=/run/lock/subsys/nginx --user=nginx --group=nginx --with-file-aio --with-openssl=../openssl --with-openssl-opt='enable-tls1_3' --with-http_ssl_module --with-http_v2_module --with-http_realip_module --with-http_addition_module --with-http_auth_request_module --with-http_sub_module --with-http_dav_module --with-http_flv_module --with-http_mp4_module --with-http_gunzip_module --with-http_gzip_static_module --with-http_random_index_module --with-http_secure_link_module --with-http_degradation_module --with-http_stub_status_module --with-mail_ssl_module --with-pcre --with-pcre-jit --add-module=../nginx-ct-1.3.2/
 	make && make install
 }
 _install_zip(){
@@ -80,11 +106,11 @@ _install_ssl(){
 		go build
 	fi
 	# first
-	# ~/.acme.sh/acme.sh --issue -w /data/web -d www.wejass.com -d wejass.com -d cdn.wejass.com
-	# ~/.acme.sh/acme.sh --issue -w /data/web -d www.wejass.com -d wejass.com -d cdn.wejass.com --keylength ec-256
+	# ~/.acme.sh/acme.sh --issue -w /data/web -d www.wejass.com -d wejass.com -d cdn.wejass.com -d git.wejass.com
+	# ~/.acme.sh/acme.sh --issue -w /data/web -d www.wejass.com -d wejass.com -d cdn.wejass.com -d git.wejass.com --keylength ec-256
 	# renew
-	~/.acme.sh/acme.sh --renew -d www.wejass.com -d wejass.com -d cdn.wejass.com --force
-	~/.acme.sh/acme.sh --renew -d www.wejass.com -d wejass.com -d cdn.wejass.com --force --ecc
+	~/.acme.sh/acme.sh --renew -d www.wejass.com -d wejass.com -d cdn.wejass.com -d git.wejass.com --force
+	~/.acme.sh/acme.sh --renew -d www.wejass.com -d wejass.com -d cdn.wejass.com -d git.wejass.com --force --ecc
 
 	cd ~/.acme.sh/www.wejass.com
 	cat fullchain.cer www.wejass.com.key > www.wejass.com.pem
@@ -109,7 +135,7 @@ _install_ssl(){
 	openssl dhparam -out dhparam.pem 4096
 	openssl rand 48 > tls_session_ticket.key
  	systemctl force-reload nginx
-#	openssl ciphers -V 'EECDH+ECDSA+AES128:EECDH+aRSA+AES128' | column -t
+#	openssl ciphers -V 'TLSv1.2:TLSv1.3'  | column -t
 #	curl -s https://www.wejass.com/css/slick-login.css | openssl dgst -sha256 -binary | openssl enc -base64 -A
 }
 _install_go(){

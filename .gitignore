@@ -12,7 +12,9 @@ sftp-config.json
 /golang/src/gomemcache/
 /golang/src/gateway/
 /golang/src/search/
+/golang/src/services/
 /python/tasks.txt
+/static/js/react/
 /download/
 /upload/
 /logs/

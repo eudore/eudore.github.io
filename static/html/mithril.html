@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Markdown Editor</title>
+		<style>
+html,body {height:100%;margin:0;}
+h1,h2,h3,h4,h5,h6,p {margin:0 0 10px;}
+#editor {display:flex;height:100%;}
+.input,.preview {box-sizing:border-box;height:100%;margin:0;padding:10px;width:50%;}
+.input {border:0;border-right:1px solid #ccc;outline:none;resize:none;}
+		</style>
+	</head>
+	<body>
+		<div id="editor"></div>
+		<script src="https://cdn.wejass.com/js/lib/marked.js" integrity='sha512-sXqPlSbXUfcx4eVCsvC8LOxSteMT1gk/tGgSbVFbCYl1pPuqlEY2dYSoeXdNuyykrCVCOZeeUqELwiJpeFUviw==' crossorigin="anonymous"></script>
+		<script src="https://cdn.wejass.com/js/lib/mithril.min.js" integrity='sha512-KBwyOQ7pEaVuW5ampCxvilBeKVzyB9PYcRFuka7xJRGk8nKx109ygsxnpl73qPTX6+53mYUV7Qfy2X3aWTBQgg==' crossorigin="anonymous"></script>
+		<script>
+//model
+var state = {
+	text: "# Markdown Editor\n\nType on the left panel and see the result on the right panel",
+	update: function(value) {
+		state.text = value
+	}
+}
+//view
+var Editor = {
+	view: function() {
+		return [
+			m("textarea.input", {
+				oninput: m.withAttr("value", state.update),
+				value: state.text
+			}),
+			m(".preview", m.trust(marked(state.text))),
+		]
+	}
+}
+m.mount(document.getElementById("editor"), Editor)
+		</script>
+	</body>
+</html>
